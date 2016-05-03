@@ -7,7 +7,7 @@
         <!-- check the latest version at http://parent.jcabi.com -->
         <version>0.39</version>
     </parent>
-    <groupId>com.github.swrirobotics</groupId>
+    <groupId>com.github.swri-robotics</groupId>
     <artifactId>bag-reader-java</artifactId>
     <packaging>jar</packaging>
     <version>1.0-SNAPSHOT</version>
