@@ -31,6 +31,8 @@
 package com.github.swrirobotics.bags.reader;
 
 public class BagReaderException extends Exception {
+    private static final long serialVersionUID = 1260021526520234562L;
+
     public BagReaderException(Exception e) {
         super(e);
     }

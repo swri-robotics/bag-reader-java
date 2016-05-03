@@ -95,8 +95,9 @@ public abstract class PrimitiveType<T> implements Field {
      * and its value was set, that will not be copied.
      * @return A copy of this field.
      */
+    @SuppressWarnings("unchecked")
     public Field copy() {
-        PrimitiveType newType;
+        PrimitiveType<T> newType;
         try {
             newType = this.getClass().newInstance();
         }

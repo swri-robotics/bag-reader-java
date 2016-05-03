@@ -35,6 +35,8 @@ package com.github.swrirobotics.bags.reader.messages.serialization;
  * {@link Field} that has not yet been read.
  */
 public class UninitializedFieldException extends Exception {
+    private static final long serialVersionUID = 3917171948613600542L;
+
     public UninitializedFieldException() {
         super();
     }

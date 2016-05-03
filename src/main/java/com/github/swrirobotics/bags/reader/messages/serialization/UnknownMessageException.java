@@ -35,6 +35,7 @@ package com.github.swrirobotics.bags.reader.messages.serialization;
  * a message that we've never seen before.
  */
 public class UnknownMessageException extends Exception {
+    private static final long serialVersionUID = 5845305952778147833L;
     private String myName = null;
     private String myPkg = "";
     public UnknownMessageException(String msgName) {

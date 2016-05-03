@@ -34,6 +34,8 @@ package com.github.swrirobotics.bags.reader.messages.serialization;
  * Thrown if a message definition cannot be parsed.
  */
 public class InvalidDefinitionException extends Exception {
+    private static final long serialVersionUID = -1864678583294644148L;
+
     public InvalidDefinitionException(String msg) {
         super(msg);
     }
