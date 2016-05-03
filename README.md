@@ -1,4 +1,4 @@
-# Java Bag Reader
+# Java Bag Reader   [![Build Status](https://travis-ci.org/swri-robotics/bag-reader-java.svg?branch=master)](https://travis-ci.org/swri-robotics/bag-reader-jav)
 
 This is a Java library intended for reading information from and deserializing [ROS Bag Files](http://wiki.ros.org/Bags).
 
