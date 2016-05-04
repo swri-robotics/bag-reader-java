@@ -313,7 +313,9 @@ public class MessageType implements Field {
      */
     @Override
     public void reset() {
-        myFields.forEach(Field::reset);
+        for (Field field : myFields) {
+            field.reset();
+        }
     }
 
     /**
@@ -411,19 +413,41 @@ public class MessageType implements Field {
         return field;
     }
 
+    /**
+     * The ROS message type without a package; for example, "String"
+     * @return The ROS message type of the field.
+     */
     @Override
     public String getType() {
         return myType;
     }
 
+    /**
+     * The ROS package containing the message definition; for example, "std_msgs"
+     * @return The ROS package containing this message definition.
+     */
     public String getPackage() {
         return myPackage;
     }
 
+    /**
+     * The MD5 sum of the ROS message definition; for example, "992ce8a1687cec8c8bd883ec73ca41d1"
+     * @return The md5 sum of the ROS message definition.
+     */
     public String getMd5Sum() {
         return myMd5Sum;
     }
 
+    /**
+     * If this is a field within another ROS message, this will be the
+     * name of the field. For example, this will be "status" if this
+     * object represents the sensor_msgs/NavSatStatus field that is inside
+     * a sensor_msgs/NavSatFix message.
+     * If this object represents a top-level message and not an inner
+     * field, it will be null.
+     * @return The name of this field if it is inside another message
+     * definition or null if it is not.
+     */
     @Override
     public String getName() {
         return myName;
@@ -434,6 +458,24 @@ public class MessageType implements Field {
         myName = name;
     }
 
+    /**
+     * Gets the value of a field with the given name within this message.
+     *
+     * This will be an instance of one of the classes that implements {@link Field}.
+     * It could be one of the following:
+     * <ul>
+     * <li>It could be another {@link MessageType}, in which case you can cast it and
+     *     call {@link #getField(String)} to get its fields.</li>
+     * <li>It could be an instance of {@link ArrayType}, in which case you can call
+     *     {@link ArrayType#getFields()} to get the individual fields that represent
+     *     its data.</li>
+     * <li>It could be an instance of any of the classes that implement {@link PrimitiveType},
+     *     in which case you can cast it and call {@link PrimitiveType#getValue()} to get
+     *     the underlying data.</li>
+     * </ul>
+     * @param name The name of the field to retrieve.
+     * @return An object representing that field.
+     */
     public Field getField(String name) {
         return myFieldNameMap.get(name);
     }

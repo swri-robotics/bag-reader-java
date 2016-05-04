@@ -61,7 +61,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * Represents a bag file.  This class contains methods for reading a bag file
@@ -105,7 +104,13 @@ public class BagFile {
      * extracted from a bag file.
      */
     public static class GpsPositions {
+        /**
+         * Longitude/latitude pairs in the WGS84 frame.
+         */
         public List<Double[]> positions = Lists.newArrayList();
+        /**
+         * A timestamp corresponding to each position.
+         */
         public List<Timestamp> timestamps = Lists.newArrayList();
     }
 
@@ -119,7 +124,12 @@ public class BagFile {
         this.myPath = FileSystems.getDefault().getPath(filePath);
     }
 
-    private SeekableByteChannel getChannel() throws IOException {
+    /**
+     * Opens a read-only SeekableByteChannel that refers to the underlying bag file.
+     * @return An open SeekableByteChannel.
+     * @throws IOException If there is an error opening the file.
+     */
+    public SeekableByteChannel getChannel() throws IOException {
         return FileChannel.open(getPath(), StandardOpenOption.READ);
     }
 
@@ -248,9 +258,11 @@ public class BagFile {
      */
     public List<Connection> findAllConnectionsOnTopic(String topic, String msgMd5Sum) {
         List<Connection> conns = Lists.newArrayList();
-        conns.addAll(getConnections().parallelStream().filter(conn -> conn.getTopic().equals(topic) &&
-                                                              conn.getMd5sum().equals(msgMd5Sum))
-                                     .collect(Collectors.toList()));
+        for (Connection conn : getConnections()) {
+            if (conn.getTopic().equals(topic) && conn.getMd5sum().equals(msgMd5Sum)) {
+                conns.add(conn);
+            }
+        }
         return conns;
     }
 
@@ -439,9 +451,9 @@ public class BagFile {
     }
 
     /**
-     * We have all of our vehicles publish their names as a string on the topic
-     * "/vms/vehicle_name".  This is just a convenient method for getting that
-     * string.
+     * The first string published on the topic"/vms/vehicle_name".
+     * We have all of our vehicles publish their name on that topic, so this
+     * is just a convenience method for getting that.
      * @return The first string published to "/vms/vehicle_name".
      * @throws BagReaderException
      */
