@@ -28,7 +28,7 @@
 //
 // *****************************************************************************
 
-package com.github.swrirobotics.bags.reader.messages.serialization;
+package com.github.swrirobotics.bags.reader.exceptions;
 
 /**
  * Thrown if a message definition cannot be parsed.

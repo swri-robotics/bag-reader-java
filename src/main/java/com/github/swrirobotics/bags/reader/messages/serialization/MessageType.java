@@ -30,6 +30,8 @@
 
 package com.github.swrirobotics.bags.reader.messages.serialization;
 
+import com.github.swrirobotics.bags.reader.exceptions.InvalidDefinitionException;
+import com.github.swrirobotics.bags.reader.exceptions.UnknownMessageException;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;

@@ -28,9 +28,10 @@
 //
 // *****************************************************************************
 
-package com.github.swrirobotics.bags.reader;
+package com.github.swrirobotics.bags.reader.records;
 
-import com.github.swrirobotics.bags.reader.messages.serialization.InvalidDefinitionException;
+import com.github.swrirobotics.bags.reader.exceptions.BagReaderException;
+import com.github.swrirobotics.bags.reader.exceptions.InvalidDefinitionException;
 import com.github.swrirobotics.bags.reader.messages.serialization.MessageCollection;
 import org.slf4j.LoggerFactory;
 

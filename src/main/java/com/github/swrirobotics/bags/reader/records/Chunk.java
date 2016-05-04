@@ -28,26 +28,28 @@
 //
 // *****************************************************************************
 
-package com.github.swrirobotics.bags.reader;
+package com.github.swrirobotics.bags.reader.records;
+
+import com.github.swrirobotics.bags.reader.exceptions.BagReaderException;
 
 /**
- * Represents a connection inside a chunk info block in a bag file.
- * @see <a href="http://wiki.ros.org/Bags/Format/2.0#Chunk_info">http://wiki.ros.org/Bags/Format/2.0#Chunk_info</a>
+ * Represents a chunk record in a bag file.
+ * @see <a href="http://wiki.ros.org/Bags/Format/2.0#Chunk">http://wiki.ros.org/Bags/Format/2.0#Chunk</a>
  */
-public class ChunkConnection {
-    private final int myConnectionId;
-    private final int myMessageCount;
+public class Chunk {
+    private String myCompression;
+    private int mySize;
 
-    public ChunkConnection(int conn, int count) {
-        myConnectionId = conn;
-        myMessageCount = count;
+    public Chunk(Record record) throws BagReaderException {
+        myCompression = record.getHeader().getValue("compression");
+        mySize = record.getHeader().getInt("size");
     }
 
-    public int getConnectionId() {
-        return myConnectionId;
+    public String getCompression() {
+        return myCompression;
     }
 
-    public int getMessageCount() {
-        return myMessageCount;
+    public int getSize() {
+        return mySize;
     }
 }

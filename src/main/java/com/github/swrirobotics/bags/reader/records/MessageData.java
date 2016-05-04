@@ -28,29 +28,30 @@
 //
 // *****************************************************************************
 
-package com.github.swrirobotics.bags.reader;
+package com.github.swrirobotics.bags.reader.records;
+
+import com.github.swrirobotics.bags.reader.exceptions.BagReaderException;
 
 import java.sql.Timestamp;
 
 /**
- * Represents an individual index within an index data record in a bag file.
- * @see <a href="http://wiki.ros.org/Bags/Format/2.0#Index_data">http://wiki.ros.org/Bags/Format/2.0#Index_data</a>
+ * Represents a message data record in a bag file.
+ * @see <a href="http://wiki.ros.org/Bags/Format/2.0#Message_data">http://wiki.ros.org/Bags/Format/2.0#Message_data</a>
  */
-public class Index {
-    private final Timestamp myTime;
-    private final int myOffset;
+public class MessageData {
+    private int myConnectionId;
+    private Timestamp myTime;
 
-    public Index(long secs, int nsecs, int offset) {
-        this.myTime = new Timestamp(secs * 1000L);
-        this.myTime.setNanos(nsecs);
-        this.myOffset = offset;
+    public MessageData(Record record) throws BagReaderException {
+        myConnectionId = record.getHeader().getInt("conn");
+        myTime = record.getHeader().getTimestamp("time");
+    }
+
+    public int getConnectionId() {
+        return myConnectionId;
     }
 
     public Timestamp getTime() {
         return myTime;
-    }
-
-    public int getOffset() {
-        return myOffset;
     }
 }

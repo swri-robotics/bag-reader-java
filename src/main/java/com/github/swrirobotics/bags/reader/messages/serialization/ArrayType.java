@@ -30,6 +30,7 @@
 
 package com.github.swrirobotics.bags.reader.messages.serialization;
 
+import com.github.swrirobotics.bags.reader.exceptions.UninitializedFieldException;
 import com.google.common.collect.Lists;
 
 import java.nio.ByteBuffer;

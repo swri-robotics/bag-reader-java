@@ -28,14 +28,16 @@
 //
 // *****************************************************************************
 
-package com.github.swrirobotics.bags.reader;
+package com.github.swrirobotics.bags.reader.records;
 
+import com.github.swrirobotics.bags.reader.exceptions.BagReaderException;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Maps;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.sql.Timestamp;
+import java.util.Arrays;
 import java.util.Map;
 
 /**
@@ -147,6 +149,130 @@ public class Header {
             String fieldstr = Joiner.on(',').join(myFieldMap.keySet());
             throw new BagReaderException("Unknown field: " + fieldName +
                                          "; valid fields are: " + fieldstr);
+        }
+    }
+
+    /**
+     * Represents a field inside a header in a bag file.
+     *
+     * Note that all of the getter functions for this class do no error checking.
+     * You'll probably get an exception if you try to call one and the field
+     * doesn't actually have enough bytes in it.
+     *
+     * @see <a href="http://wiki.ros.org/Bags/Format/2.0#Headers">http://wiki.ros.org/Bags/Format/2.0#Headers</a>
+     */
+    private static class Field {
+        private final int myLength;
+        private String myName;
+        private byte[] myValue;
+
+        private boolean myGotInt = false;
+        private int myIntValue = 0;
+        private boolean myGotLong = false;
+        private long myLongValue = 0;
+        private String myStringValue = null;
+        private Timestamp myTimestampValue = null;
+
+        /**
+         * Creates a new field by reading it from the byte buffer.
+         * @param buffer The buffer to read the field from.
+         * @throws BagReaderException
+         */
+        public Field(ByteBuffer buffer) throws BagReaderException {
+            myLength = buffer.getInt();
+            if (myLength > 100000L) {
+                throw new BagReaderException("Header field is unreasonably large (" +
+                                             myLength +
+                                             " bytes).  Bag file may need to be reindexed.");
+            }
+            else {
+                byte fieldData[] = new byte[myLength];
+                buffer.get(fieldData);
+                fieldData = ByteBuffer.wrap(fieldData).order(ByteOrder.LITTLE_ENDIAN).array();
+
+                int separatorPos = -1;
+                for (int i = 0; i < fieldData.length; i++) {
+                    if (fieldData[i] == '=') {
+                        separatorPos = i;
+                        break;
+                    }
+                }
+
+                if (separatorPos > -1) {
+                    myName = new String(Arrays.copyOfRange(fieldData, 0, separatorPos));
+                    myValue = Arrays.copyOfRange(fieldData, separatorPos + 1, fieldData.length);
+                }
+                else {
+                    throw new BagReaderException("Unable to find separator in header.");
+                }
+            }
+        }
+
+        /**
+         * @return The length of the field's name and value combined.
+         */
+        public int getLength() {
+            return myLength;
+        }
+
+        /**
+         * @return The name of the field.
+         */
+        public String getName() {
+            return myName;
+        }
+
+        /**
+         * @return The value of the field as an integer.
+         */
+        public int getInt() {
+            if (!myGotInt) {
+                myIntValue = ByteBuffer.wrap(myValue).order(ByteOrder.LITTLE_ENDIAN).getInt();
+                myGotInt = true;
+            }
+            return myIntValue;
+        }
+
+        /**
+         * @return The value of the field as a long.
+         */
+        public long getLong() {
+            if (!myGotLong) {
+                myLongValue = ByteBuffer.wrap(myValue).order(ByteOrder.LITTLE_ENDIAN).getLong();
+                myGotLong = true;
+            }
+            return myLongValue;
+        }
+
+        /**
+         * @return Just the first byte of the field's value.
+         */
+        public byte getFirstByte() {
+            return myValue[0];
+        }
+
+        /**
+         * @return The value of the field as a string.
+         */
+        public String getString() {
+            if (myStringValue == null) {
+                myStringValue = new String(myValue);
+            }
+            return myStringValue;
+        }
+
+        /**
+         * @return The value of the field as a timestamp.
+         */
+        public Timestamp getTimestamp() {
+            if (myTimestampValue == null) {
+                ByteBuffer buffer = ByteBuffer.wrap(myValue).order(ByteOrder.LITTLE_ENDIAN);
+                long secs = (long) buffer.getInt();
+                int nsecs = buffer.getInt();
+                myTimestampValue = new Timestamp(secs * 1000L);
+                myTimestampValue.setNanos(nsecs);
+            }
+            return myTimestampValue;
         }
     }
 }

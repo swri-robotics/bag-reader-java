@@ -30,10 +30,12 @@
 
 package com.github.swrirobotics.bags.reader;
 
+import com.github.swrirobotics.bags.reader.exceptions.BagReaderException;
 import com.github.swrirobotics.bags.reader.messages.serialization.Float64Type;
 import com.github.swrirobotics.bags.reader.messages.serialization.MsgIterator;
 import com.github.swrirobotics.bags.reader.messages.serialization.TimeType;
-import com.github.swrirobotics.bags.reader.messages.serialization.UninitializedFieldException;
+import com.github.swrirobotics.bags.reader.exceptions.UninitializedFieldException;
+import com.github.swrirobotics.bags.reader.records.*;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.primitives.Ints;
@@ -280,7 +282,7 @@ public class BagFile {
     private Record getFirstChunkForConnection(int connId, SeekableByteChannel input) throws BagReaderException {
         long chunkPos = -1;
         for (ChunkInfo info : myChunkInfos) {
-            for (ChunkConnection conn : info.getConnections()) {
+            for (ChunkInfo.ChunkConnection conn : info.getConnections()) {
                 if (conn.getConnectionId() == connId) {
                     chunkPos = info.getChunkPos();
                     break;
@@ -457,12 +459,12 @@ public class BagFile {
      * The list will be sorted by name.
      * @return All of the messages in the bag file.
      */
-    public List<MessageType> getMessageTypes() {
-        Set<MessageType> types =
-                getConnections().parallelStream().map(conn -> new MessageType(conn.getType(), conn.getMd5sum()))
+    public List<TopicInfo.MessageType> getMessageTypes() {
+        Set<TopicInfo.MessageType> types =
+                getConnections().parallelStream().map(conn -> new TopicInfo.MessageType(conn.getType(), conn.getMd5sum()))
                                 .collect(Collectors.toSet());
 
-        List<MessageType> list = Lists.newArrayList(types);
+        List<TopicInfo.MessageType> list = Lists.newArrayList(types);
         Collections.sort(list);
 
         return list;
@@ -502,7 +504,7 @@ public class BagFile {
         }
         else {
             for (ChunkInfo info : myChunkInfos) {
-                for (ChunkConnection conn : info.getConnections()) {
+                for (ChunkInfo.ChunkConnection conn : info.getConnections()) {
                     TopicInfo topic = topicConnIdMap.get(conn.getConnectionId());
                     if (topic == null) {
                         throw new BagReaderException("ChunkInfo referred to a connection ID (" +
@@ -535,7 +537,7 @@ public class BagFile {
         }
         else {
             for (ChunkInfo info : myChunkInfos) {
-                for (ChunkConnection conn : info.getConnections()) {
+                for (ChunkInfo.ChunkConnection conn : info.getConnections()) {
                     count += conn.getMessageCount();
                 }
             }
@@ -591,7 +593,7 @@ public class BagFile {
      * @return A new record from that particular position.
      * @throws BagReaderException
      */
-    static Record recordAt(SeekableByteChannel input, long index) throws BagReaderException {
+    static public Record recordAt(SeekableByteChannel input, long index) throws BagReaderException {
         try {
             input.position(index);
             return new Record(input);
@@ -655,7 +657,7 @@ public class BagFile {
         for (IndexData indexData : getIndexes()) {
             digest.update(Ints.toByteArray(indexData.getConnectionId()));
             digest.update(Ints.toByteArray(indexData.getCount()));
-            for (Index index : indexData.getIndexes()) {
+            for (IndexData.Index index : indexData.getIndexes()) {
                 digest.update(Longs.toByteArray(index.getTime().getTime()));
                 digest.update(Ints.toByteArray(index.getOffset()));
             }
@@ -666,7 +668,7 @@ public class BagFile {
             digest.update(Ints.toByteArray(chunk.getCount()));
             digest.update(Longs.toByteArray(chunk.getEndTime().getTime()));
             digest.update(Longs.toByteArray(chunk.getStartTime().getTime()));
-            for (ChunkConnection conn : chunk.getConnections()) {
+            for (ChunkInfo.ChunkConnection conn : chunk.getConnections()) {
                 digest.update(Ints.toByteArray(conn.getConnectionId()));
                 digest.update(Ints.toByteArray(conn.getMessageCount()));
             }
@@ -767,7 +769,7 @@ public class BagFile {
                             (((double) this.getPath().toFile().length()) / 1024.0) + " MB");
         myLogger.info("Messages: " + this.getMessageCount());
         myLogger.info("Types:    ");
-        for (MessageType type : this.getMessageTypes()) {
+        for (TopicInfo.MessageType type : this.getMessageTypes()) {
             myLogger.info("  " + type.getName() + " \t\t[" + type.getMd5sum() + "]");
         }
         myLogger.info("Topics:");

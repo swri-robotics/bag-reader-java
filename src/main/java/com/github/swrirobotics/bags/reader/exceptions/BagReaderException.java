@@ -17,44 +17,27 @@
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 // AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 // IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-// ARE DISCLAIMED. IN NO EVENT SHALL Southwest Research Institute® BE LIABLE 
-// FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
-// DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR 
-// SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER 
-// CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT 
-// LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY 
+// ARE DISCLAIMED. IN NO EVENT SHALL Southwest Research Institute® BE LIABLE
+// FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+// DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+// SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+// CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+// LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
 // OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
 // DAMAGE.
 //
 // *****************************************************************************
 
-package com.github.swrirobotics.bags.reader;
+package com.github.swrirobotics.bags.reader.exceptions;
 
-/**
- * Represents a bag file's top-level header.  There should be exactly one of these,
- * and it should be the first header in the bag file.
- * @see <a href="http://wiki.ros.org/Bags/Format/2.0#Bag_header">http://wiki.ros.org/Bags/Format/2.0#Bag_header</a>
- */
-public class BagHeader {
-    private long myIndexPos;
-    private int myConnCount;
-    private int myChunkCount;
+public class BagReaderException extends Exception {
+    private static final long serialVersionUID = 1260021526520234562L;
 
-    public BagHeader(Record record) throws BagReaderException {
-        myIndexPos = record.getHeader().getLong("index_pos");
-        myConnCount = record.getHeader().getInt("conn_count");
-        myChunkCount = record.getHeader().getInt("chunk_count");
+    public BagReaderException(Exception e) {
+        super(e);
     }
 
-    public long getIndexPos() {
-        return myIndexPos;
-    }
-
-    public int getConnCount() {
-        return myConnCount;
-    }
-
-    public int getChunkCount() {
-        return myChunkCount;
+    public BagReaderException(String reason) {
+        super(reason);
     }
 }

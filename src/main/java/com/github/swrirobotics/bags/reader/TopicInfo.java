@@ -138,4 +138,55 @@ public class TopicInfo implements Comparable<TopicInfo> {
     public int compareTo(TopicInfo topicInfo) {
         return this.myName.compareTo(topicInfo.myName);
     }
+
+    /**
+     * Represents a message type that was sent on a topic in a bag file.
+     */
+    public static class MessageType implements Comparable<MessageType> {
+        private final String myName;
+        private final String myMd5sum;
+
+        public MessageType(String name, String md5sum) {
+            this.myName = name;
+            this.myMd5sum = md5sum;
+        }
+
+        public String getName() {
+            return myName;
+        }
+
+        public String getMd5sum() {
+            return myMd5sum;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+
+            MessageType that = (MessageType) o;
+
+            if (!myName.equals(that.myName)) {
+                return false;
+            }
+            return myMd5sum.equals(that.myMd5sum);
+
+        }
+
+        @Override
+        public int hashCode() {
+            int result = myName.hashCode();
+            result = 31 * result + myMd5sum.hashCode();
+            return result;
+        }
+
+        @Override
+        public int compareTo(MessageType messageType) {
+            return this.myName.compareTo(messageType.myName);
+        }
+    }
 }

@@ -28,26 +28,18 @@
 //
 // *****************************************************************************
 
-package com.github.swrirobotics.bags.reader;
+package com.github.swrirobotics.bags.reader.exceptions;
+
+import com.github.swrirobotics.bags.reader.messages.serialization.Field;
 
 /**
- * Represents a chunk record in a bag file.
- * @see <a href="http://wiki.ros.org/Bags/Format/2.0#Chunk">http://wiki.ros.org/Bags/Format/2.0#Chunk</a>
+ * Thrown if an attempt is made to access the value of a
+ * {@link Field} that has not yet been read.
  */
-public class Chunk {
-    private String myCompression;
-    private int mySize;
+public class UninitializedFieldException extends Exception {
+    private static final long serialVersionUID = 3917171948613600542L;
 
-    public Chunk(Record record) throws BagReaderException {
-        myCompression = record.getHeader().getValue("compression");
-        mySize = record.getHeader().getInt("size");
-    }
-
-    public String getCompression() {
-        return myCompression;
-    }
-
-    public int getSize() {
-        return mySize;
+    public UninitializedFieldException() {
+        super();
     }
 }

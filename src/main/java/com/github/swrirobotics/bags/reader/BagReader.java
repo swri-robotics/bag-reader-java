@@ -30,7 +30,8 @@
 
 package com.github.swrirobotics.bags.reader;
 
-import com.github.swrirobotics.bags.reader.messages.serialization.UninitializedFieldException;
+import com.github.swrirobotics.bags.reader.exceptions.BagReaderException;
+import com.github.swrirobotics.bags.reader.exceptions.UninitializedFieldException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

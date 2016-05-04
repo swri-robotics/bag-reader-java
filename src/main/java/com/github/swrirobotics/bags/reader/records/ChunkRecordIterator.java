@@ -28,7 +28,12 @@
 //
 // *****************************************************************************
 
-package com.github.swrirobotics.bags.reader;
+package com.github.swrirobotics.bags.reader.records;
+
+import com.github.swrirobotics.bags.reader.BagFile;
+import com.github.swrirobotics.bags.reader.exceptions.BagReaderException;
+import com.github.swrirobotics.bags.reader.records.ChunkInfo;
+import com.github.swrirobotics.bags.reader.records.Record;
 
 import java.nio.channels.SeekableByteChannel;
 import java.util.Iterator;
@@ -93,7 +98,7 @@ public class ChunkRecordIterator implements Iterator<Record> {
         while (myChunkIter.hasNext() && chunkPos == -1) {
             // Iterate through our chunks until we find one that matches our connection ID.
             ChunkInfo info = myChunkIter.next();
-            for (ChunkConnection conn : info.getConnections()) {
+            for (ChunkInfo.ChunkConnection conn : info.getConnections()) {
                 if (conn.getConnectionId() == myConnId) {
                     chunkPos = info.getChunkPos();
                     break;

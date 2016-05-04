@@ -28,33 +28,39 @@
 //
 // *****************************************************************************
 
-package com.github.swrirobotics.bags.reader;
+package com.github.swrirobotics.bags.reader.records;
 
-import java.nio.ByteBuffer;
+import com.github.swrirobotics.bags.reader.exceptions.BagReaderException;
+
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Represents an index data record in a bag file.
- * @see <a href="http://wiki.ros.org/Bags/Format/2.0#Index_data">http://wiki.ros.org/Bags/Format/2.0#Index_data</a>
+ * Represents a chunk info record in a bag file.
+ * @see <a href="http://wiki.ros.org/Bags/Format/2.0#Chunk_info">http://wiki.ros.org/Bags/Format/2.0#Chunk_info</a>
  */
-public class IndexData {
+public class ChunkInfo {
     private int myVersion;
-    private int myConnectionId;
+    private long myChunkPos;
+    private Timestamp myStartTime;
+    private Timestamp myEndTime;
     private int myCount;
-    private final List<Index> myIndexes = new ArrayList<>();
+    private final List<ChunkConnection> myConnections = new ArrayList<>();
 
-    public IndexData(Record record) throws BagReaderException {
+    public ChunkInfo(Record record) throws BagReaderException {
         myVersion = record.getHeader().getInt("ver");
-        myConnectionId = record.getHeader().getInt("conn");
+        myChunkPos = record.getHeader().getLong("chunk_pos");
+        myStartTime = record.getHeader().getTimestamp("start_time");
+        myEndTime = record.getHeader().getTimestamp("end_time");
         myCount = record.getHeader().getInt("count");
 
-        ByteBuffer buffer = record.getData();
-        for (int i = 0; i < myCount; i++) {
-            long secs = (long) buffer.getInt();
-            int nsecs = buffer.getInt();
-            int offsetVal = buffer.getInt();
-            myIndexes.add(new Index(secs, nsecs, offsetVal));
+        int[] connectionCounts = new int[myCount * 2];
+
+        record.getData().asIntBuffer().get(connectionCounts);
+        for (int i = 0; i < connectionCounts.length; i += 2) {
+            myConnections.add(new ChunkConnection(
+                    connectionCounts[i], connectionCounts[i+1]));
         }
     }
 
@@ -62,15 +68,45 @@ public class IndexData {
         return myVersion;
     }
 
-    public int getConnectionId() {
-        return myConnectionId;
+    public long getChunkPos() {
+        return myChunkPos;
+    }
+
+    public Timestamp getStartTime() {
+        return myStartTime;
+    }
+
+    public Timestamp getEndTime() {
+        return myEndTime;
     }
 
     public int getCount() {
         return myCount;
     }
 
-    public List<Index> getIndexes() {
-        return myIndexes;
+    public List<ChunkConnection> getConnections() {
+        return myConnections;
+    }
+
+    /**
+     * Represents a connection inside a chunk info block in a bag file.
+     * @see <a href="http://wiki.ros.org/Bags/Format/2.0#Chunk_info">http://wiki.ros.org/Bags/Format/2.0#Chunk_info</a>
+     */
+    public static class ChunkConnection {
+        private final int myConnectionId;
+        private final int myMessageCount;
+
+        public ChunkConnection(int conn, int count) {
+            myConnectionId = conn;
+            myMessageCount = count;
+        }
+
+        public int getConnectionId() {
+            return myConnectionId;
+        }
+
+        public int getMessageCount() {
+            return myMessageCount;
+        }
     }
 }

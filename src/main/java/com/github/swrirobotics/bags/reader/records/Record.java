@@ -28,9 +28,10 @@
 //
 // *****************************************************************************
 
-package com.github.swrirobotics.bags.reader;
+package com.github.swrirobotics.bags.reader.records;
 
 import com.fasterxml.jackson.databind.util.ByteBufferBackedInputStream;
+import com.github.swrirobotics.bags.reader.exceptions.BagReaderException;
 import org.apache.commons.compress.compressors.bzip2.BZip2CompressorInputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

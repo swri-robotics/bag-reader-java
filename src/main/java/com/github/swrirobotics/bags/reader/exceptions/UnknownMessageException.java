@@ -17,27 +17,42 @@
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 // AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 // IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-// ARE DISCLAIMED. IN NO EVENT SHALL Southwest Research Institute® BE LIABLE
-// FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-// DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-// SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-// CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-// LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+// ARE DISCLAIMED. IN NO EVENT SHALL Southwest Research Institute® BE LIABLE 
+// FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
+// DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR 
+// SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER 
+// CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT 
+// LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY 
 // OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
 // DAMAGE.
 //
 // *****************************************************************************
 
-package com.github.swrirobotics.bags.reader;
+package com.github.swrirobotics.bags.reader.exceptions;
 
-public class BagReaderException extends Exception {
-    private static final long serialVersionUID = 1260021526520234562L;
-
-    public BagReaderException(Exception e) {
-        super(e);
+/**
+ * Thrown if an attempt is made to resolve the definition for
+ * a message that we've never seen before.
+ */
+public class UnknownMessageException extends Exception {
+    private static final long serialVersionUID = 5845305952778147833L;
+    private String myName = null;
+    private String myPkg = "";
+    public UnknownMessageException(String msgName) {
+        super("Unable to resolve message type: " + msgName);
+        myName = msgName;
+    }
+    public UnknownMessageException(String pkg, String name) {
+        super("Unable to resolve message type: " + pkg + "/" + name);
+        myPkg = pkg;
+        myName = name;
     }
 
-    public BagReaderException(String reason) {
-        super(reason);
+    public String getPackage() {
+        return myPkg;
+    }
+
+    public String getName() {
+        return myName;
     }
 }

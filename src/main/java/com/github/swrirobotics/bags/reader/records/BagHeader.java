@@ -28,31 +28,35 @@
 //
 // *****************************************************************************
 
-package com.github.swrirobotics.bags.reader.messages.serialization;
+package com.github.swrirobotics.bags.reader.records;
+
+import com.github.swrirobotics.bags.reader.exceptions.BagReaderException;
 
 /**
- * Thrown if an attempt is made to resolve the definition for
- * a message that we've never seen before.
+ * Represents a bag file's top-level header.  There should be exactly one of these,
+ * and it should be the first header in the bag file.
+ * @see <a href="http://wiki.ros.org/Bags/Format/2.0#Bag_header">http://wiki.ros.org/Bags/Format/2.0#Bag_header</a>
  */
-public class UnknownMessageException extends Exception {
-    private static final long serialVersionUID = 5845305952778147833L;
-    private String myName = null;
-    private String myPkg = "";
-    public UnknownMessageException(String msgName) {
-        super("Unable to resolve message type: " + msgName);
-        myName = msgName;
-    }
-    public UnknownMessageException(String pkg, String name) {
-        super("Unable to resolve message type: " + pkg + "/" + name);
-        myPkg = pkg;
-        myName = name;
+public class BagHeader {
+    private long myIndexPos;
+    private int myConnCount;
+    private int myChunkCount;
+
+    public BagHeader(Record record) throws BagReaderException {
+        myIndexPos = record.getHeader().getLong("index_pos");
+        myConnCount = record.getHeader().getInt("conn_count");
+        myChunkCount = record.getHeader().getInt("chunk_count");
     }
 
-    public String getPackage() {
-        return myPkg;
+    public long getIndexPos() {
+        return myIndexPos;
     }
 
-    public String getName() {
-        return myName;
+    public int getConnCount() {
+        return myConnCount;
+    }
+
+    public int getChunkCount() {
+        return myChunkCount;
     }
 }

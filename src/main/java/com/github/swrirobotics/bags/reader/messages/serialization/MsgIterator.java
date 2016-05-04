@@ -31,6 +31,12 @@
 package com.github.swrirobotics.bags.reader.messages.serialization;
 
 import com.github.swrirobotics.bags.reader.*;
+import com.github.swrirobotics.bags.reader.exceptions.BagReaderException;
+import com.github.swrirobotics.bags.reader.exceptions.UnknownMessageException;
+import com.github.swrirobotics.bags.reader.records.ChunkInfo;
+import com.github.swrirobotics.bags.reader.records.ChunkRecordIterator;
+import com.github.swrirobotics.bags.reader.records.Connection;
+import com.github.swrirobotics.bags.reader.records.Record;
 import com.google.common.collect.Lists;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
