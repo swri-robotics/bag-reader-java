@@ -27,7 +27,7 @@ Add the following dependency to your Maven pom.xml:
 The general pattern you'll follow is:
 
 1. Use the static BagReader.read() methods to obtain a BagFile.
-2. Use call getConnections() on your BagFile and search through them to find the connections you want based on criteria such as their topic or message type.
+2. Call getConnections() on your BagFile and search through them to find the connections you want based on criteria such as their topic or message type.
 3. Create an instance of MsgIterator and use it to iterate through MessageType objects for those connections.
 
 Read over the Javadocs for the BagFile class; it has many other methods you can use to extract data from the bag file in various ways.
@@ -39,7 +39,7 @@ Read over the Javadocs for the BagFile class; it has many other methods you can 
 ```java
 public class ExampleClass {
     public static void main(String[] args) throws BagReaderException {
-        BagFile file = BagReader.readFile("/home/preed/public_html/bags/debug-2013-08-15-16-06-53.orig.bag");
+        BagFile file = BagReader.readFile("file.bag");
 
         System.out.println("Topics:");
         for (TopicInfo topic : file.getTopics()) {
