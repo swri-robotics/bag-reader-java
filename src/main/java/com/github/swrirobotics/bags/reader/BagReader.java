@@ -31,31 +31,51 @@
 package com.github.swrirobotics.bags.reader;
 
 import com.github.swrirobotics.bags.reader.exceptions.BagReaderException;
-import com.github.swrirobotics.bags.reader.exceptions.UninitializedFieldException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
 public class BagReader {
     private static final Logger myLogger = LoggerFactory.getLogger(BagReader.class);
 
+    /**
+     * Reads a V2.0 ROS bag file and returns a {@link BagFile} that represents it.
+     * @param file The file to read.
+     * @return An object that can be used to extract information from the bag.
+     * @throws BagReaderException If there was an error reading or parsing the file.
+     */
     public static BagFile readFile(File file) throws BagReaderException {
         BagFile bag = new BagFile(file.getAbsolutePath());
         bag.read();
         return bag;
     }
 
+    /**
+     * Reads a V2.0 ROS bag file and returns a {@link BagFile} that represents it.
+     * @param filename The path of the file to read.
+     * @return An object that can be used to extract information from the bag.
+     * @throws BagReaderException If there was an error reading or parsing the file.
+     */
     public static BagFile readFile(String filename) throws BagReaderException {
         BagFile bag = new BagFile(filename);
         bag.read();
         return bag;
     }
 
-    public static void main(String[] args) throws BagReaderException, IOException, UninitializedFieldException {
+    /**
+     * Reads in a series of bag files from the command line and prints
+     * information about them; this is similar to the output of
+     * "rosbag info".
+     * @param args A list of filenames to read.
+     * @throws BagReaderException If there were errors parsing the bag files.
+     */
+    public static void main(String[] args) throws BagReaderException {
+        // TODO It would be nice if there were some command line arguments
+        // you could use here to extract different types of information
+        // and make this more useful as a command-line utility.
         myLogger.info("Reading bag files.");
         List<BagFile> bags = new ArrayList<>();
         for (String arg : args) {
@@ -73,24 +93,28 @@ public class BagReader {
         for (BagFile bag : bags) {
             myLogger.info("Path:     " + bag.getPath().toString());
 
+            // Prints out a block of info similar to "rosbag info".
+            bag.printInfo();
+
+            // Gets the first GPS message and prints it.
             Double[] gps = bag.getFirstGpsMessage();
             if (gps != null) {
                 myLogger.info("Lat/Lon: " + gps[0] + " / " + gps[1]);
             }
 
-            bag.printInfo();
-            //bag.analyzeMessageTypes();
+            // Prints out a unique fingerprint for the bag file.  Note that
+            // this is not the same as doing an md5sum of the entire file.
+            myLogger.info("Bag fingerprint: " + bag.getUniqueIdentifier());
 
-
-            myLogger.info("Md5sum: " + bag.getUniqueIdentifier());
-
+            // This would extract all GPS messages and print them out.
             /*List<Double[]> msgs = bag.getAllGpsMessages().positions;
             myLogger.info(msgs.size() + " GPS messages.");
             for (Double[] msg : msgs) {
                 myLogger.info("  Lon/Lat: (" + msg[0] + ", " + msg[1] + ")");
             }*/
-            com.github.swrirobotics.bags.reader.messages.serialization.MessageType.printStats();
-            //myLogger.info("GPS data:\n" + new String(data.array()));
+
+            // Prints some statistics about message deserialization.
+            //MessageType.printStats();
         }
     }
 }
