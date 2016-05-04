@@ -48,7 +48,7 @@ import java.util.regex.Pattern;
 
 /**
  * Parses and deserializes complex ROS message types.
- * See {@see <a href="http://wiki.ros.org/msg">http://wiki.ros.org/msg</a>} for the spec.
+ * @see <a href="http://wiki.ros.org/msg">http://wiki.ros.org/msg</a>
  */
 public class MessageType implements Field {
     private String myPackage;

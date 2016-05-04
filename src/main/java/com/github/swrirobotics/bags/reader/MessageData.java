@@ -34,7 +34,7 @@ import java.sql.Timestamp;
 
 /**
  * Represents a message data record in a bag file.
- * {@see <a href="http://wiki.ros.org/Bags/Format/2.0#Message_data">http://wiki.ros.org/Bags/Format/2.0#Message_data</a>}
+ * @see <a href="http://wiki.ros.org/Bags/Format/2.0#Message_data">http://wiki.ros.org/Bags/Format/2.0#Message_data</a>
  */
 public class MessageData {
     private int myConnectionId;

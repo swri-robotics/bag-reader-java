@@ -40,7 +40,7 @@ import java.util.Map;
 
 /**
  * Represents a header in a bag file.
- * {@see <a href="http://wiki.ros.org/Bags/Format/2.0#Headers">http://wiki.ros.org/Bags/Format/2.0#Headers</a>}
+ * @see <a href="http://wiki.ros.org/Bags/Format/2.0#Headers">http://wiki.ros.org/Bags/Format/2.0#Headers</a>
  */
 public class Header {
     private final Map<String, Field> myFieldMap = Maps.newHashMap();

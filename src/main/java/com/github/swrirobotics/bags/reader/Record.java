@@ -42,7 +42,7 @@ import java.nio.channels.SeekableByteChannel;
 
 /**
  * Represents a generic record in a bag file.
- * {@see <a href="http://wiki.ros.org/Bags/Format/2.0#Records">http://wiki.ros.org/Bags/Format/2.0#Records</a>}
+ * @see <a href="http://wiki.ros.org/Bags/Format/2.0#Records">http://wiki.ros.org/Bags/Format/2.0#Records</a>
  */
 public class Record {
     private int headerLength;

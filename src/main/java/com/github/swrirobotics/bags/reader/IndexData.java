@@ -36,7 +36,7 @@ import java.util.List;
 
 /**
  * Represents an index data record in a bag file.
- * {@see <a href="http://wiki.ros.org/Bags/Format/2.0#Index_data">http://wiki.ros.org/Bags/Format/2.0#Index_data</a>}
+ * @see <a href="http://wiki.ros.org/Bags/Format/2.0#Index_data">http://wiki.ros.org/Bags/Format/2.0#Index_data</a>
  */
 public class IndexData {
     private int myVersion;

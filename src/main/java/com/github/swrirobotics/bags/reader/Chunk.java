@@ -32,7 +32,7 @@ package com.github.swrirobotics.bags.reader;
 
 /**
  * Represents a chunk record in a bag file.
- * {@see <a href="http://wiki.ros.org/Bags/Format/2.0#Chunk">http://wiki.ros.org/Bags/Format/2.0#Chunk</a>}
+ * @see <a href="http://wiki.ros.org/Bags/Format/2.0#Chunk">http://wiki.ros.org/Bags/Format/2.0#Chunk</a>
  */
 public class Chunk {
     private String myCompression;

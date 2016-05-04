@@ -37,11 +37,12 @@ import java.util.Arrays;
 
 /**
  * Represents a field inside a header in a bag file.
- * {@see <a href="http://wiki.ros.org/Bags/Format/2.0#Headers">http://wiki.ros.org/Bags/Format/2.0#Headers</a>}
  *
  * Note that all of the getter functions for this class do no error checking.
  * You'll probably get an exception if you try to call one and the field
  * doesn't actually have enough bytes in it.
+ *
+ * @see <a href="http://wiki.ros.org/Bags/Format/2.0#Headers">http://wiki.ros.org/Bags/Format/2.0#Headers</a>
  */
 public class Field {
     private final int myLength;

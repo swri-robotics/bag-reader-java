@@ -33,7 +33,7 @@ package com.github.swrirobotics.bags.reader;
 /**
  * Represents a bag file's top-level header.  There should be exactly one of these,
  * and it should be the first header in the bag file.
- * {@see <a href="http://wiki.ros.org/Bags/Format/2.0#Bag_header">http://wiki.ros.org/Bags/Format/2.0#Bag_header</a>}
+ * @see <a href="http://wiki.ros.org/Bags/Format/2.0#Bag_header">http://wiki.ros.org/Bags/Format/2.0#Bag_header</a>
  */
 public class BagHeader {
     private long myIndexPos;

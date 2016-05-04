@@ -36,7 +36,7 @@ import java.util.List;
 
 /**
  * Represents a chunk info record in a bag file.
- * {@see <a href="http://wiki.ros.org/Bags/Format/2.0#Chunk_info">http://wiki.ros.org/Bags/Format/2.0#Chunk_info</a>}
+ * @see <a href="http://wiki.ros.org/Bags/Format/2.0#Chunk_info">http://wiki.ros.org/Bags/Format/2.0#Chunk_info</a>
  */
 public class ChunkInfo {
     private int myVersion;

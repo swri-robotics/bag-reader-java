@@ -32,7 +32,7 @@ package com.github.swrirobotics.bags.reader;
 
 /**
  * Represents a connection inside a chunk info block in a bag file.
- * {@see <a href="http://wiki.ros.org/Bags/Format/2.0#Chunk_info">http://wiki.ros.org/Bags/Format/2.0#Chunk_info</a>}
+ * @see <a href="http://wiki.ros.org/Bags/Format/2.0#Chunk_info">http://wiki.ros.org/Bags/Format/2.0#Chunk_info</a>
  */
 public class ChunkConnection {
     private final int myConnectionId;

@@ -160,7 +160,7 @@ public class BagFile {
 
     /**
      * The bag's header record.
-     * {@see <a href="http://wiki.ros.org/Bags/Format/2.0#Bag_header">http://wiki.ros.org/Bags/Format/2.0#Bag_header</a>}
+     * @see <a href="http://wiki.ros.org/Bags/Format/2.0#Bag_header">http://wiki.ros.org/Bags/Format/2.0#Bag_header</a>
      * @return The bag's header.
      */
     public BagHeader getBagHeader() {
@@ -169,7 +169,7 @@ public class BagFile {
 
     /**
      * All of the chunks in the bag file.
-     * {@see <a href="http://wiki.ros.org/Bags/Format/2.0#Chunk">http://wiki.ros.org/Bags/Format/2.0#Chunk</a>}
+     * @see <a href="http://wiki.ros.org/Bags/Format/2.0#Chunk">http://wiki.ros.org/Bags/Format/2.0#Chunk</a>
      * @return All of the chunks in the bag file.
      */
     public List<Chunk> getChunks() {
@@ -178,7 +178,7 @@ public class BagFile {
 
     /**
      * All of the connections in the bag file.
-     * {@see <a href="http://wiki.ros.org/Bags/Format/2.0#Connection">http://wiki.ros.org/Bags/Format/2.0#Connection</a>}
+     * @see <a href="http://wiki.ros.org/Bags/Format/2.0#Connection">http://wiki.ros.org/Bags/Format/2.0#Connection</a>
      * @return All of the connections in the bag file.
      */
     public List<Connection> getConnections() {
@@ -197,7 +197,7 @@ public class BagFile {
 
     /**
      * All of the messages in the bag file.
-     * {@see <a href="http://wiki.ros.org/Bags/Format/2.0#Message_data">http://wiki.ros.org/Bags/Format/2.0#Message_data</a>}
+     * @see <a href="http://wiki.ros.org/Bags/Format/2.0#Message_data">http://wiki.ros.org/Bags/Format/2.0#Message_data</a>
      * @return All of the messages in the bag file.
      */
     public List<MessageData> getMessages() {
@@ -206,7 +206,7 @@ public class BagFile {
 
     /**
      * All of the indexes in the bag file.
-     * {@see <a href="http://wiki.ros.org/Bags/Format/2.0#Index_data">http://wiki.ros.org/Bags/Format/2.0#Index_data</a>}
+     * @see <a href="http://wiki.ros.org/Bags/Format/2.0#Index_data">http://wiki.ros.org/Bags/Format/2.0#Index_data</a>
      * @return All of the indexes in the bag file.
      */
     public List<IndexData> getIndexes() {
@@ -215,7 +215,7 @@ public class BagFile {
 
     /**
      * All of the chunk infos in the bag file.
-     * {@see <a href="http://wiki.ros.org/Bags/Format/2.0#Chunk_info">http://wiki.ros.org/Bags/Format/2.0#Chunk_info</a>
+     * @see <a href="http://wiki.ros.org/Bags/Format/2.0#Chunk_info">http://wiki.ros.org/Bags/Format/2.0#Chunk_info</a>
      * @return All of the chunk infos in the bag file.
      */
     public List<ChunkInfo> getChunkInfos() {
@@ -619,6 +619,7 @@ public class BagFile {
      * data inside their chunks.  Please don't do that.
      *
      * @return An MD5 hash that can be used to uniquely identify this bag file.
+     * @throws BagReaderException
      */
     public String getUniqueIdentifier() throws BagReaderException {
         MessageDigest digest = DigestUtils.getMd5Digest();

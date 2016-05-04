@@ -36,7 +36,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Represents a connection in a bag file.
- * {@see <a href="http://wiki.ros.org/Bags/Format/2.0#Connection">http://wiki.ros.org/Bags/Format/2.0#Connection</a>}
+ * @see <a href="http://wiki.ros.org/Bags/Format/2.0#Connection">http://wiki.ros.org/Bags/Format/2.0#Connection</a>
  */
 public class Connection {
     private int myConnectionId;
