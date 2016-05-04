@@ -36,7 +36,8 @@ package com.github.swrirobotics.bags.reader;
 public class TopicInfo implements Comparable<TopicInfo> {
     private final String myName;
     private long myMessageCount = 0;
-    private final MessageType myMessageType;
+    private final String myMessageType;
+    private final String myMessageMd5Sum;
     private long myConnectionCount = 0;
 
     /**
@@ -47,7 +48,8 @@ public class TopicInfo implements Comparable<TopicInfo> {
      */
     public TopicInfo(String name, String type, String md5sum) {
         this.myName = name;
-        this.myMessageType = new MessageType(type, md5sum);
+        this.myMessageType = type;
+        this.myMessageMd5Sum = md5sum;
     }
 
     /**
@@ -76,8 +78,15 @@ public class TopicInfo implements Comparable<TopicInfo> {
     /**
      * @return The type of message published on this topic.
      */
-    public MessageType getMessageType() {
+    public String getMessageType() {
         return myMessageType;
+    }
+
+    /**
+     * @return The md5sum of the message type published on this topic.
+     */
+    public String getMessageMd5Sum() {
+        return myMessageMd5Sum;
     }
 
     /**
@@ -123,6 +132,7 @@ public class TopicInfo implements Comparable<TopicInfo> {
         int result = myName.hashCode();
         result = 31 * result + (int) (myMessageCount ^ (myMessageCount >>> 32));
         result = 31 * result + myMessageType.hashCode();
+        result = 31 * result + myMessageMd5Sum.hashCode();
         result = 31 * result + (int) (myConnectionCount ^ (myConnectionCount >>> 32));
         return result;
     }
@@ -137,56 +147,5 @@ public class TopicInfo implements Comparable<TopicInfo> {
     @Override
     public int compareTo(TopicInfo topicInfo) {
         return this.myName.compareTo(topicInfo.myName);
-    }
-
-    /**
-     * Represents a message type that was sent on a topic in a bag file.
-     */
-    public static class MessageType implements Comparable<MessageType> {
-        private final String myName;
-        private final String myMd5sum;
-
-        public MessageType(String name, String md5sum) {
-            this.myName = name;
-            this.myMd5sum = md5sum;
-        }
-
-        public String getName() {
-            return myName;
-        }
-
-        public String getMd5sum() {
-            return myMd5sum;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) {
-                return true;
-            }
-            if (o == null || getClass() != o.getClass()) {
-                return false;
-            }
-
-            MessageType that = (MessageType) o;
-
-            if (!myName.equals(that.myName)) {
-                return false;
-            }
-            return myMd5sum.equals(that.myMd5sum);
-
-        }
-
-        @Override
-        public int hashCode() {
-            int result = myName.hashCode();
-            result = 31 * result + myMd5sum.hashCode();
-            return result;
-        }
-
-        @Override
-        public int compareTo(MessageType messageType) {
-            return this.myName.compareTo(messageType.myName);
-        }
     }
 }

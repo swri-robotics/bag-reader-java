@@ -160,7 +160,9 @@ public class Record {
                     final byte[] buffer = new byte[decompressedSize];
                     int n = bz2Stream.read(buffer);
                     if (n != decompressedSize) {
-                        myLogger.warn("Unexpectedly read " + n + " bytes.");
+                        throw new BagReaderException("Read " + n + " bytes from a " +
+                                                     "compressed chunk but expected " +
+                                                     decompressedSize + ".");
                     }
 
                     myData = ByteBuffer.wrap(buffer);

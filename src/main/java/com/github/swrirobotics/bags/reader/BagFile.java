@@ -31,19 +31,20 @@
 package com.github.swrirobotics.bags.reader;
 
 import com.github.swrirobotics.bags.reader.exceptions.BagReaderException;
-import com.github.swrirobotics.bags.reader.messages.serialization.Float64Type;
-import com.github.swrirobotics.bags.reader.messages.serialization.MsgIterator;
-import com.github.swrirobotics.bags.reader.messages.serialization.TimeType;
 import com.github.swrirobotics.bags.reader.exceptions.UninitializedFieldException;
+import com.github.swrirobotics.bags.reader.messages.serialization.*;
 import com.github.swrirobotics.bags.reader.records.*;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
 import com.google.common.primitives.Ints;
 import com.google.common.primitives.Longs;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -56,7 +57,10 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.security.MessageDigest;
 import java.sql.Timestamp;
-import java.util.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -96,6 +100,10 @@ public class BagFile {
 
     private static final Logger myLogger = LoggerFactory.getLogger(BagFile.class);
 
+    /**
+     * Wrapper class used to represent GPS positions and their timestamps
+     * extracted from a bag file.
+     */
     public static class GpsPositions {
         public List<Double[]> positions = Lists.newArrayList();
         public List<Timestamp> timestamps = Lists.newArrayList();
@@ -103,8 +111,8 @@ public class BagFile {
 
     /**
      * Constructs a new BagFile that represents a bag at the given path.
-     * After initialization, you should call {@link #read()} to read
-     * the bag's data into memory.
+     * If you create a bag file using this constructor, you should then call
+     * {@link #read()} to read the bag's data into memory.
      * @param filePath The path of the file to open.
      */
     public BagFile(String filePath) {
@@ -227,14 +235,19 @@ public class BagFile {
     /**
      * Finds all of the connections made to a particular topic with a
      * particular MD5 sum.
+     *
+     * You're thinking, "but this is silly, all messages on a topic should have
+     * the same MD5 sum!"  This is true within a single bag file, but different
+     * bag files could have topics with the same name but different messages.  If
+     * you are searching through multiple bag files for particular messages on a
+     * particular topic, you need to ensure that you only get the messages for the
+     * type that you really want.
      * @param topic The topic name to search for.
      * @param msgMd5Sum The MD5 sum of messages sent on that topic.
      * @return All of the connections made with that topic/md5sum.
      */
     public List<Connection> findAllConnectionsOnTopic(String topic, String msgMd5Sum) {
         List<Connection> conns = Lists.newArrayList();
-        //myLogger.info("Looking for all connections on topic: " + topic);
-        //myLogger.info("  Found conn: " + conn.getConnectionId());
         conns.addAll(getConnections().parallelStream().filter(conn -> conn.getTopic().equals(topic) &&
                                                               conn.getMd5sum().equals(msgMd5Sum))
                                      .collect(Collectors.toList()));
@@ -266,12 +279,12 @@ public class BagFile {
      * there is no connection of that type, returns null.
      * There is no guarantee of exactly which Connection in the bag file will
      * be returned.
-     * @param type The MD5 sum of the message type of the connection.
+     * @param msgMd5Sum The MD5 sum of the message type of the connection.
      * @return The first connection of that type, or null if none was found.
      */
-    public Connection findFirstConnectionOfType(String type) {
+    public Connection findFirstConnectionOfType(String msgMd5Sum) {
         for (Connection tmpConn : getConnections()) {
-            if (tmpConn.getMd5sum().equals(type)) {
+            if (tmpConn.getMd5sum().equals(msgMd5Sum)) {
                 return tmpConn;
             }
         }
@@ -361,14 +374,12 @@ public class BagFile {
             try (SeekableByteChannel input = getChannel()) {
                 MsgIterator iter = new MsgIterator(myChunkInfos, connIds, input);
                 while (iter.hasNext()) {
-                    com.github.swrirobotics.bags.reader.messages.serialization.MessageType msg = iter.next();
+                    MessageType msg = iter.next();
                     try {
                         double longitude = ((Float64Type) msg.getField("longitude")).getValue();
                         double latitude = ((Float64Type) msg.getField("latitude")).getValue();
                         wrapper.positions.add(new Double[]{longitude, latitude});
-                        com.github.swrirobotics.bags.reader.messages.serialization.Field tsField =
-                                ((com.github.swrirobotics.bags.reader.messages.serialization.MessageType) msg.getField("header"))
-                                        .getField("stamp");
+                        Field tsField = ((MessageType) msg.getField("header")).getField("stamp");
                         if (tsField instanceof TimeType) {
                             Timestamp time = ((TimeType) tsField).getValue();
                             wrapper.timestamps.add(time);
@@ -411,7 +422,7 @@ public class BagFile {
             for (Connection conn : conns) {
                 try (SeekableByteChannel input = getChannel()) {
                     MsgIterator iter = new MsgIterator(myChunkInfos, conn, input);
-                    com.github.swrirobotics.bags.reader.messages.serialization.MessageType mt = iter.next();
+                    MessageType mt = iter.next();
                     if (mt != null) {
                         double lat = ((Float64Type) mt.getField("latitude")).getValue();
                         double lon = ((Float64Type) mt.getField("longitude")).getValue();
@@ -456,18 +467,24 @@ public class BagFile {
 
     /**
      * Gets all of the different types of messages in the bag file.
-     * The list will be sorted by name.
+     * The keys in the multimap will be the message type's name
+     * (e. g., "gps_common/GPSFix") and the values will be all of the
+     * MD5Sums that were found for messages of that type (e. g.,
+     * "3db3d0a7bc53054c67c528af84710b70").
+     *
+     * Yes, a bag file will <i>probably</i> only have a single MD5 for any
+     * given message type, but there's nothing stopping it from having
+     * different types on different connections....
      * @return All of the messages in the bag file.
      */
-    public List<TopicInfo.MessageType> getMessageTypes() {
-        Set<TopicInfo.MessageType> types =
-                getConnections().parallelStream().map(conn -> new TopicInfo.MessageType(conn.getType(), conn.getMd5sum()))
-                                .collect(Collectors.toSet());
+    public Multimap<String, String> getMessageTypes() {
+        Multimap<String, String> mtMap = HashMultimap.create();
+        List<Connection> connections = getConnections();
+        for (Connection connection : connections) {
+            mtMap.put(connection.getType(), connection.getMd5sum());
+        }
 
-        List<TopicInfo.MessageType> list = Lists.newArrayList(types);
-        Collections.sort(list);
-
-        return list;
+        return mtMap;
     }
 
     /**
@@ -545,6 +562,10 @@ public class BagFile {
         return count;
     }
 
+    /**
+     * Indicates whether this bag file has any indexes.
+     * @return "true" if there are indexes, "false" otherwise.
+     */
     public boolean isIndexed() {
         return !myIndexes.isEmpty();
     }
@@ -604,7 +625,7 @@ public class BagFile {
     }
 
     /**
-     * Generates a hash that acts as a unique identifier for this page file.
+     * Generates a hash that acts as a fingerprint for this bag file.
      *
      * Sometimes you'd like to be able to compare two bag files to determine if
      * they're identical.  Doing a byte-for-byte comparison or comparing MD5 sums
@@ -618,7 +639,9 @@ public class BagFile {
      * world, and it will even uniquely identify bag files that have the same data
      * but have been reindexed or reordered.  It will not uniquely identify bag
      * files that have exactly the same record and header structure but differing
-     * data inside their chunks.  Please don't do that.
+     * data inside their chunks.  I don't think that will ever happen unless
+     * somebody manually crafts a bag file with differing chunks.
+     * Please don't do that.
      *
      * @return An MD5 hash that can be used to uniquely identify this bag file.
      * @throws BagReaderException
@@ -686,8 +709,12 @@ public class BagFile {
 
     /**
      * Reads all of the records in a bag file into this object.
-     * This should only be called once.  Create a new BagFile if you need to
-     * read a file a second time.
+     * This method must be called before attempting to extract any data from
+     * the bag file.  {@link BagReader#readFile(File)} and {@link BagReader#readFile(String)}
+     * will automatically do that for you; if you create a BagFile using
+     * {@link #BagFile(String)}, you must manually call this.
+     * This will only read a bag file ones.  Successive calls to this method
+     * will have no effect.
      * @throws BagReaderException
      */
     public void read() throws BagReaderException {
@@ -704,7 +731,7 @@ public class BagFile {
                     case BAG_HEADER:
                         this.myBagHeader = new BagHeader(record);
                         if (this.getBagHeader().getIndexPos() == 0) {
-                            throw new BagReaderException("Bag file needs to be reindexed.");
+                            throw new BagReaderException("Unable to read bag header; reindex the bag file.");
                         }
                         input.position(this.getBagHeader().getIndexPos());
                         break;
@@ -724,6 +751,8 @@ public class BagFile {
                     case CHUNK_INFO:
                         this.getChunkInfos().add(new ChunkInfo(record));
                         break;
+                    default:
+                        throw new BagReaderException("Unknown header type.");
                 }
             }
         }
@@ -769,13 +798,13 @@ public class BagFile {
                             (((double) this.getPath().toFile().length()) / 1024.0) + " MB");
         myLogger.info("Messages: " + this.getMessageCount());
         myLogger.info("Types:    ");
-        for (TopicInfo.MessageType type : this.getMessageTypes()) {
-            myLogger.info("  " + type.getName() + " \t\t[" + type.getMd5sum() + "]");
+        for (Map.Entry<String, String> entry : this.getMessageTypes().entries()) {
+            myLogger.info("  " + entry.getKey() + " \t\t[" + entry.getValue() + "]");
         }
         myLogger.info("Topics:");
         for (TopicInfo topic : this.getTopics()) {
             myLogger.info("  " + topic.getName() + " \t\t" + topic.getMessageCount() +
-                                " msgs \t: " + topic.getMessageType().getName() + " \t" +
+                                " msgs \t: " + topic.getMessageType() + " \t" +
                                 (topic.getConnectionCount() > 1 ? ("(" + topic.getConnectionCount() + " connections)") : ""));
         }
 

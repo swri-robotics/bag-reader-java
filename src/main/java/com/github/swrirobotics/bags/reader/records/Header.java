@@ -65,7 +65,8 @@ public class Header {
             myFieldMap.put(field.getName(), field);
 
             if ("op".equals(field.getName())) {
-                switch (field.getFirstByte()) {
+                byte firstByte = field.getFirstByte();
+                switch (firstByte) {
                     case 0x03:
                         myType = Record.RecordType.BAG_HEADER;
                         break;
@@ -85,8 +86,7 @@ public class Header {
                         myType = Record.RecordType.CHUNK_INFO;
                         break;
                     default:
-                        myType = Record.RecordType.UNKNOWN;
-                        break;
+                        throw new BagReaderException("Unknown op code in header: " + firstByte);
                 }
             }
         }

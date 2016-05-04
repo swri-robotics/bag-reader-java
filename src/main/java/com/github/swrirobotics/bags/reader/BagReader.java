@@ -38,6 +38,13 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Provides methods for reading files and producing {@link BagFile}s.
+ * <p>
+ *     Also provides a {@link #main(String[])} method that can be used as an
+ *     entry point for functionality similar to the "rosbag info" command.
+ * </p>
+ */
 public class BagReader {
     private static final Logger myLogger = LoggerFactory.getLogger(BagReader.class);
 
