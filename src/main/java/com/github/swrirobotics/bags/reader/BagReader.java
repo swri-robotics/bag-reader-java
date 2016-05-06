@@ -31,6 +31,11 @@
 package com.github.swrirobotics.bags.reader;
 
 import com.github.swrirobotics.bags.reader.exceptions.BagReaderException;
+import com.github.swrirobotics.bags.reader.exceptions.UninitializedFieldException;
+import com.github.swrirobotics.bags.reader.messages.serialization.Float64Type;
+import com.github.swrirobotics.bags.reader.messages.serialization.MessageType;
+import com.github.swrirobotics.bags.reader.messages.serialization.StringType;
+import com.github.swrirobotics.bags.reader.records.Connection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -79,7 +84,7 @@ public class BagReader {
      * @param args A list of filenames to read.
      * @throws BagReaderException If there were errors parsing the bag files.
      */
-    public static void main(String[] args) throws BagReaderException {
+    public static void main(String[] args) throws BagReaderException, UninitializedFieldException {
         // TODO It would be nice if there were some command line arguments
         // you could use here to extract different types of information
         // and make this more useful as a command-line utility.
@@ -104,21 +109,22 @@ public class BagReader {
             bag.printInfo();
 
             // Gets the first GPS message and prints it.
-            Double[] gps = bag.getFirstGpsMessage();
-            if (gps != null) {
-                myLogger.info("Lat/Lon: " + gps[0] + " / " + gps[1]);
+            MessageType msg = bag.getFirstMessageOfType("gps_common/GPSFix");
+            if (msg == null) {
+                msg = bag.getFirstMessageOfType("sensor_msgs/NavSatFix");
+            }
+            if (msg == null) {
+                msg = bag.getFirstMessageOfType("marti_gps_common/GPSFix");
+            }
+            if (msg != null) {
+                myLogger.info("Lat/Lon: " +
+                              msg.<Float64Type>getField("latitude").getValue() + " / " +
+                              msg.<Float64Type>getField("longitude").getValue());
             }
 
             // Prints out a unique fingerprint for the bag file.  Note that
             // this is not the same as doing an md5sum of the entire file.
             myLogger.info("Bag fingerprint: " + bag.getUniqueIdentifier());
-
-            // This would extract all GPS messages and print them out.
-            /*List<Double[]> msgs = bag.getAllGpsMessages().positions;
-            myLogger.info(msgs.size() + " GPS messages.");
-            for (Double[] msg : msgs) {
-                myLogger.info("  Lon/Lat: (" + msg[0] + ", " + msg[1] + ")");
-            }*/
 
             // Prints some statistics about message deserialization.
             //MessageType.printStats();
