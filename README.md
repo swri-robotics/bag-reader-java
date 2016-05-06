@@ -18,7 +18,7 @@ Add the following dependency to your Maven pom.xml:
 <dependency>
     <groupId>com.github.swri-robotics</groupId>
     <artifactId>bag-reader-java</artifactId>
-    <version>1.1</version>
+    <version>1.2</version>
 </dependency>
 ```
 
@@ -27,10 +27,9 @@ Add the following dependency to your Maven pom.xml:
 The general pattern you'll follow is:
 
 1. Use the static BagReader.read() methods to obtain a BagFile.
-2. Call getConnections() on your BagFile and search through them to find the connections you want based on criteria such as their topic or message type.
-3. Create an instance of MsgIterator and use it to iterate through MessageType objects for those connections.
+2. Call forMessagesOfType() or forMessagesOnTopic() on your BagFile to iterate through all of the messages on a particular type or topic.
 
-Read over the Javadocs for the BagFile class; it has many other methods you can use to extract data from the bag file in various ways.
+Read over the Javadocs for the BagFile class; it has many other methods you can use to extract data from the bag file in various ways, such as looking for only the first message of a type or on a topic, or directly looking through individual connections.
 
 ## Examples
 
@@ -57,30 +56,19 @@ public class ExampleClass {
 public class ExampleClass {
     public static void main(String[] args) throws BagReaderException {
         BagFile file = BagReader.readFile("file.bag");
-        String messageType = "std_msgs/String";
 
-        List<Connection> stringConns = Lists.newArrayList();
-        for (Connection conn : file.getConnections()) {
-            if (conn.getType().equals(messageType)) {
-                stringConns.add(conn);
-            }
-        }
-
-        try (SeekableByteChannel channel = file.getChannel()) {
-            for (Connection conn : stringConns) {
-                MsgIterator iter = new MsgIterator(file.getChunkInfos(), conn, channel);
-
-                while (iter.hasNext()) {
-                    MessageType mt = iter.next();
-                    String value = ((StringType) mt.getField("data")).getValue();
-
-                    System.out.println("String from " + conn.getTopic() + ": " + value);
+        file.forMessagesOfType("std_msgs/String", new MessageHandler() {
+            @Override
+            public boolean process(MessageType message) {
+                try {
+                    System.out.println(message.<StringType>getField("data").getValue());
                 }
+                catch (UninitializedFieldException e) {
+                    System.err.println("Field was not initialized.");
+                }
+                return true;
             }
-        }
-        catch (IOException | UninitializedFieldException e) {
-            throw new BagReaderException(e);
-        }
+        });
     }
 }
 ```

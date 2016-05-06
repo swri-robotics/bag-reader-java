@@ -31,8 +31,8 @@
 package com.github.swrirobotics.bags.reader;
 
 import com.github.swrirobotics.bags.reader.exceptions.BagReaderException;
-import com.github.swrirobotics.bags.reader.exceptions.UninitializedFieldException;
-import com.github.swrirobotics.bags.reader.messages.serialization.*;
+import com.github.swrirobotics.bags.reader.messages.serialization.MessageType;
+import com.github.swrirobotics.bags.reader.messages.serialization.MsgIterator;
 import com.github.swrirobotics.bags.reader.records.*;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
@@ -47,11 +47,9 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.nio.channels.FileChannel;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.SeekableByteChannel;
-import java.nio.charset.Charset;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
@@ -78,41 +76,14 @@ public class BagFile {
     private final List<Chunk> myChunks = Lists.newArrayList();
     private final List<Connection> myConnections = Lists.newArrayList();
     private final Map<Integer, Connection> myConnectionsById = Maps.newHashMap();
+    private final Multimap<String, Connection> myConnectionsByTopic = HashMultimap.create();
+    private final Multimap<String, Connection> myConnectionsByType = HashMultimap.create();
     private final List<MessageData> myMessages = Lists.newArrayList();
     private final List<IndexData> myIndexes = Lists.newArrayList();
     private final List<ChunkInfo> myChunkInfos = Lists.newArrayList();
 
-    private static final String[]
-            GPS_TYPE_MD5_SUMS = new String[] {"3db3d0a7bc53054c67c528af84710b70", // gps_common/GPSFix
-                                              "2d3a8cd499b9b4a0249fb98fd05cfa48", // sensor_msgs/NavSatFix
-                                              "e9eea369cace13aae0ef3e5a7c6b0ff6" // marti_gps_common/GPSFix
-    };
-
-    private static final String[] GPS_TOPICS = new String[] {"/localization/gps",
-                                                             "gps",
-                                                             "/vehicle/gps/fix",
-                                                             "/localization/sensors/gps/novatel/raw",
-                                                             "/localization/sensors/gps/novatel/fix",
-                                                             "/imu_3dm_node/gps/fix",
-                                                             "/local_xy_origin"
-    };
-
     private static final Logger myLogger = LoggerFactory.getLogger(BagFile.class);
 
-    /**
-     * Wrapper class used to represent GPS positions and their timestamps
-     * extracted from a bag file.
-     */
-    public static class GpsPositions {
-        /**
-         * Longitude/latitude pairs in the WGS84 frame.
-         */
-        public List<Double[]> positions = Lists.newArrayList();
-        /**
-         * A timestamp corresponding to each position.
-         */
-        public List<Timestamp> timestamps = Lists.newArrayList();
-    }
 
     /**
      * Constructs a new BagFile that represents a bag at the given path.
@@ -213,6 +184,8 @@ public class BagFile {
     private void addConnection(Connection connection) {
         myConnections.add(connection);
         myConnectionsById.put(connection.getConnectionId(), connection);
+        myConnectionsByTopic.put(connection.getTopic(), connection);
+        myConnectionsByType.put(connection.getType(), connection);
     }
 
     /**
@@ -243,50 +216,6 @@ public class BagFile {
     }
 
     /**
-     * Finds all of the connections made to a particular topic with a
-     * particular MD5 sum.
-     *
-     * You're thinking, "but this is silly, all messages on a topic should have
-     * the same MD5 sum!"  This is true within a single bag file, but different
-     * bag files could have topics with the same name but different messages.  If
-     * you are searching through multiple bag files for particular messages on a
-     * particular topic, you need to ensure that you only get the messages for the
-     * type that you really want.
-     * @param topic The topic name to search for.
-     * @param msgMd5Sum The MD5 sum of messages sent on that topic.
-     * @return All of the connections made with that topic/md5sum.
-     */
-    public List<Connection> findAllConnectionsOnTopic(String topic, String msgMd5Sum) {
-        List<Connection> conns = Lists.newArrayList();
-        for (Connection conn : getConnections()) {
-            if (conn.getTopic().equals(topic) && conn.getMd5sum().equals(msgMd5Sum)) {
-                conns.add(conn);
-            }
-        }
-        return conns;
-    }
-
-    /**
-     * Returns the connection ID of the first connection  a particular topic.
-     * Returns -1 if there were no connections on that topic.
-     * There is no guarantee of exactly which connection in the bag file will
-     * be found.
-     * @param topic A ntopic name to search for.
-     * @return A connection ID if one was found on that topic; -1 otherwise.
-     */
-    private int findFirstConnectionOnTopic(String topic) {
-        int connId = -1;
-        for (Connection conn : getConnections()) {
-            if (conn.getTopic().equals(topic)) {
-                connId = conn.getConnectionId();
-                break;
-            }
-        }
-
-        return connId;
-    }
-
-    /**
      * Finds the first connection whose MD5 sum matches the given value.  IF
      * there is no connection of that type, returns null.
      * There is no guarantee of exactly which Connection in the bag file will
@@ -294,7 +223,7 @@ public class BagFile {
      * @param msgMd5Sum The MD5 sum of the message type of the connection.
      * @return The first connection of that type, or null if none was found.
      */
-    public Connection findFirstConnectionOfType(String msgMd5Sum) {
+    public Connection findFirstConnectionByMd5Sum(String msgMd5Sum) {
         for (Connection tmpConn : getConnections()) {
             if (tmpConn.getMd5sum().equals(msgMd5Sum)) {
                 return tmpConn;
@@ -304,146 +233,107 @@ public class BagFile {
         return null;
     }
 
-    private Record getFirstChunkForConnection(int connId, SeekableByteChannel input) throws BagReaderException {
-        long chunkPos = -1;
-        for (ChunkInfo info : myChunkInfos) {
-            for (ChunkInfo.ChunkConnection conn : info.getConnections()) {
-                if (conn.getConnectionId() == connId) {
-                    chunkPos = info.getChunkPos();
-                    break;
-                }
-            }
-        }
-        if (chunkPos == -1) {
-            throw new BagReaderException("Connection not found.");
-        }
+    /**
+     * This is similar to {@link #forMessagesOfType(String, MessageHandler)},
+     * except it will only process the messages on the first topic it finds
+     * with the correct type.
+     * @param messageType The type of message, e.g. "sensor_msgs/NavSatFix"
+     * @param handler An object that will process that message.
+     * @throws BagReaderException If there is an error reading the bag.
+     */
+    public void forFirstTopicWithMessagesOfType(String messageType, MessageHandler handler) throws BagReaderException {
+        for (Connection conn : myConnectionsByType.get(messageType)) {
+            try (SeekableByteChannel channel = getChannel()) {
+                MsgIterator iter = new MsgIterator(myChunkInfos, conn, channel);
 
-        Record chunk = recordAt(input, chunkPos);
-        chunk.readData();
-
-        return chunk;
-    }
-
-    private ByteBuffer findFirstMessageForConnection(int connId) throws BagReaderException {
-        Record chunk;
-        try (SeekableByteChannel input = getChannel()) {
-            chunk = getFirstChunkForConnection(connId, input);
-        }
-        catch (IOException e) {
-            throw new BagReaderException(e);
-        }
-
-        final ByteBufferChannel data = new ByteBufferChannel(chunk.getData());
-        try {
-            while (data.position() < data.size()) {
-                Record record = new Record(data);
-                if (record.getHeader().getType() == Record.RecordType.MESSAGE_DATA) {
-                    if (record.getHeader().getInt("conn") == connId) {
-                        return record.getData().order(ByteOrder.LITTLE_ENDIAN);
+                while (iter.hasNext()) {
+                    boolean keepWorking = handler.process(iter.next(), conn);
+                    if (!keepWorking) {
+                        return;
                     }
                 }
+
+                return;
+            }
+            catch (IOException e) {
+                throw new BagReaderException(e);
             }
         }
-        catch (IOException e) {
-            throw new BagReaderException(e);
-        }
-
-        return null;
     }
 
     /**
-     * Attempts to find all of the GPS messages in the bag file and return
-     * a list containing all of them and all of the timestamps associated
-     * with them.
-     * @return All of the GPS positions in the bag file.
-     * @throws BagReaderException
+     * Iterates through every message with the given type and passes it to the
+     * handler object.  This processes ALL messages of that type, regardless of
+     * which topic or connection they arrived on.  Messages are not guaranteed
+     * to be processed in any particular order.
+     * If {@link MessageHandler#process(MessageType, Connection)} return false, it will
+     * cease processing immediately.
+     * @param messageType The type of message, e.g. "sensor_msgs/NavSatFix"
+     * @param handler An object that will process that message.
+     * @throws BagReaderException If there is an error reading the bag.
      */
-    public GpsPositions getAllGpsMessages() throws BagReaderException {
-        List<Connection> connIds = Lists.newArrayList();
+    public void forMessagesOfType(String messageType, MessageHandler handler) throws BagReaderException {
+        for (Connection conn : myConnectionsByType.get(messageType)) {
+            try (SeekableByteChannel channel = getChannel()) {
+                MsgIterator iter = new MsgIterator(myChunkInfos, conn, channel);
 
-        // First, check all of our known GPSFix topics for any messages.
-        for (String topic : GPS_TOPICS) {
-            for (String md5sum : GPS_TYPE_MD5_SUMS) {
-                List<Connection> tmpConnIds = findAllConnectionsOnTopic(topic, md5sum);
-                if (!tmpConnIds.isEmpty()) {
-                    connIds.addAll(tmpConnIds);
-                    break;
-                }
-            }
-            if (!connIds.isEmpty()) {
-                myLogger.debug("Found " + connIds.size() +
-                               " GPS connections on topic " + topic + ".");
-                break;
-            }
-        }
-
-        GpsPositions wrapper = new GpsPositions();
-
-        if (!connIds.isEmpty()) {
-            wrapper.positions = Lists.newArrayList();
-            wrapper.timestamps = Lists.newArrayList();
-
-            try (SeekableByteChannel input = getChannel()) {
-                MsgIterator iter = new MsgIterator(myChunkInfos, connIds, input);
                 while (iter.hasNext()) {
-                    MessageType msg = iter.next();
-                    try {
-                        double longitude = ((Float64Type) msg.getField("longitude")).getValue();
-                        double latitude = ((Float64Type) msg.getField("latitude")).getValue();
-                        wrapper.positions.add(new Double[]{longitude, latitude});
-                        Field tsField = ((MessageType) msg.getField("header")).getField("stamp");
-                        if (tsField instanceof TimeType) {
-                            Timestamp time = ((TimeType) tsField).getValue();
-                            wrapper.timestamps.add(time);
-                        }
+                    boolean keepWorking = handler.process(iter.next(), conn);
+                    if (!keepWorking) {
+                        return;
                     }
-                    catch (UninitializedFieldException e) {
-                        throw new BagReaderException(e);
-                    }
-                }
-
-                if (wrapper.timestamps.size() != wrapper.positions.size()) {
-                    throw new BagReaderException("Could not read timestamps for every GPS value.");
                 }
             }
             catch (IOException e) {
-                myLogger.error("Error opening channel:", e);
+                throw new BagReaderException(e);
             }
         }
-
-        return wrapper;
     }
 
     /**
-     * Finds the first GPS message that it can in the bag file and returns it
-     * as a [latitude, longitude] pair.  There's no guarantee as to exactly
-     * which GPS message this will find in the bag file.
-     * @return The first GPS message in the bag file; null if none is found.
-     * @throws BagReaderException
+     * Iterates through every message published on the given topic and passes it
+     * to the handler object.  Messages are not guaranteed to be processed in
+     * any particular order.
+     * If {@link MessageHandler#process(MessageType, Connection)} return false, it will
+     * cease processing immediately.
+     * @param topic The topic, e.g. "/localization/gps"
+     * @param handler An object that will process that message.
+     * @throws BagReaderException If there is an error reading the bag.
      */
-    public Double[] getFirstGpsMessage() throws BagReaderException {
-        List<Connection> conns = Lists.newArrayList();
-        for (String md5sum : GPS_TYPE_MD5_SUMS) {
-            Connection conn = findFirstConnectionOfType(md5sum);
-            if (conn != null) {
-                conns.add(conn);
-            }
-        }
+    public void forMessagesOnTopic(String topic, MessageHandler handler) throws BagReaderException {
+        for (Connection conn : myConnectionsByTopic.get(topic)) {
+            try (SeekableByteChannel channel = getChannel()) {
+                MsgIterator iter = new MsgIterator(myChunkInfos, conn, channel);
 
-        if (!conns.isEmpty()) {
-            for (Connection conn : conns) {
-                try (SeekableByteChannel input = getChannel()) {
-                    MsgIterator iter = new MsgIterator(myChunkInfos, conn, input);
-                    MessageType mt = iter.next();
-                    if (mt != null) {
-                        double lat = ((Float64Type) mt.getField("latitude")).getValue();
-                        double lon = ((Float64Type) mt.getField("longitude")).getValue();
-                        return new Double[]{lat, lon};
+                while (iter.hasNext()) {
+                    boolean keepWorking = handler.process(iter.next(), conn);
+                    if (!keepWorking) {
+                        return;
                     }
                 }
-                catch (IOException | UninitializedFieldException e) {
-                    throw new BagReaderException(e);
+            }
+            catch (IOException e) {
+                throw new BagReaderException(e);
+            }
+        }
+    }
+    /**
+     * Searches through every connection in the bag for one with the specified
+     * message type and returns the first message on that connection.
+     * @param messageType The message type; e.g., "sensor_msgs/NavSatFix"
+     * @return The first message found of that type, or null if none were found.
+     * @throws BagReaderException If there was an error reading the bag.
+     */
+    public MessageType getFirstMessageOfType(String messageType) throws BagReaderException {
+        for (Connection conn : myConnectionsByType.get(messageType)) {
+            try (SeekableByteChannel channel = getChannel()) {
+                MsgIterator iter = new MsgIterator(myChunkInfos, conn, channel);
+                if (iter.hasNext()) {
+                    return iter.next();
                 }
+            }
+            catch (IOException e) {
+                throw new BagReaderException(e);
             }
         }
 
@@ -451,26 +341,25 @@ public class BagFile {
     }
 
     /**
-     * The first string published on the topic"/vms/vehicle_name".
-     * We have all of our vehicles publish their name on that topic, so this
-     * is just a convenience method for getting that.
-     * @return The first string published to "/vms/vehicle_name".
-     * @throws BagReaderException
+     * Searches through every connection in the bag for one on the specified
+     * topic and returns the first message on that topic.
+     * NOTE: This will be the first message that is found in the bag file, which
+     * is <i>probably</i> the first one chronologically, but it might not be if
+     * the bag file was not written in chronological order.
+     * @param topic The topic to search for, e.g. "/localization/gps"
+     * @return The first message found on that topic, or null if none were found.
+     * @throws BagReaderException If there was an error reading the bag.
      */
-    public String getVehicleName() throws BagReaderException {
-        int connId = findFirstConnectionOnTopic("/vms/vehicle_name");
-
-        if (connId != -1) {
-            ByteBuffer nameData = findFirstMessageForConnection(connId);
-
-            if (nameData != null) {
-                byte[] bytes = nameData.array();
-                String name = new String(bytes, Charset.forName("UTF-8"));
-                // For some reason, sometimes the vehicle names have
-                // non-printable characters in them.
-                // Trim whitespace off of the beginning and end and strip out
-                // any non-printable characters.
-                return name.replaceAll("\\p{C}", "").trim();
+    public MessageType getFirstMessageOnTopic(String topic) throws BagReaderException {
+        for (Connection conn : myConnectionsByTopic.get(topic)) {
+            try (SeekableByteChannel channel = getChannel()) {
+                MsgIterator iter = new MsgIterator(myChunkInfos, conn, channel);
+                if (iter.hasNext()) {
+                    return iter.next();
+                }
+            }
+            catch (IOException e) {
+                throw new BagReaderException(e);
             }
         }
 
@@ -819,8 +708,5 @@ public class BagFile {
                                 " msgs \t: " + topic.getMessageType() + " \t" +
                                 (topic.getConnectionCount() > 1 ? ("(" + topic.getConnectionCount() + " connections)") : ""));
         }
-
-        String name = this.getVehicleName();
-        myLogger.info("Vehicle Name: " + (name == null ? "(none)" : name));
     }
 }

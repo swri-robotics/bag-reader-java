@@ -464,7 +464,7 @@ public class MessageType implements Field {
      * This will be an instance of one of the classes that implements {@link Field}.
      * It could be one of the following:
      * <ul>
-     * <li>It could be another {@link MessageType}, in which case you can cast it and
+     * <li>It could be another {@link MessageType}, in which case you can
      *     call {@link #getField(String)} to get its fields.</li>
      * <li>It could be an instance of {@link ArrayType}, in which case you can call
      *     {@link ArrayType#getFields()} to get the individual fields that represent
@@ -473,11 +473,15 @@ public class MessageType implements Field {
      *     in which case you can cast it and call {@link PrimitiveType#getValue()} to get
      *     the underlying data.</li>
      * </ul>
+     * @param <T> The type of field that you are expecting.
      * @param name The name of the field to retrieve.
      * @return An object representing that field.
+     * @throws ClassCastException If the set parameter type is not the same as the actual
+     *                            field type.
      */
-    public Field getField(String name) {
-        return myFieldNameMap.get(name);
+    @SuppressWarnings("unchecked")
+    public <T extends Field> T getField(String name) {
+        return (T)myFieldNameMap.get(name);
     }
 
     /**
