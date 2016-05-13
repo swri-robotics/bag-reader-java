@@ -34,8 +34,6 @@ import com.github.swrirobotics.bags.reader.exceptions.BagReaderException;
 import com.github.swrirobotics.bags.reader.exceptions.UninitializedFieldException;
 import com.github.swrirobotics.bags.reader.messages.serialization.Float64Type;
 import com.github.swrirobotics.bags.reader.messages.serialization.MessageType;
-import com.github.swrirobotics.bags.reader.messages.serialization.StringType;
-import com.github.swrirobotics.bags.reader.records.Connection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -125,7 +123,7 @@ public class BagReader {
             // Prints out a unique fingerprint for the bag file.  Note that
             // this is not the same as doing an md5sum of the entire file.
             myLogger.info("Bag fingerprint: " + bag.getUniqueIdentifier());
-
+            
             // Prints some statistics about message deserialization.
             //MessageType.printStats();
         }

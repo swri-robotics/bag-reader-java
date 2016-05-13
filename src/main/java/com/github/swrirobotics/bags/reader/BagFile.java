@@ -31,6 +31,7 @@
 package com.github.swrirobotics.bags.reader;
 
 import com.github.swrirobotics.bags.reader.exceptions.BagReaderException;
+import com.github.swrirobotics.bags.reader.exceptions.UnknownMessageException;
 import com.github.swrirobotics.bags.reader.messages.serialization.MessageType;
 import com.github.swrirobotics.bags.reader.messages.serialization.MsgIterator;
 import com.github.swrirobotics.bags.reader.records.*;
@@ -47,6 +48,7 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.channels.FileChannel;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.SeekableByteChannel;
@@ -78,12 +80,33 @@ public class BagFile {
     private final Map<Integer, Connection> myConnectionsById = Maps.newHashMap();
     private final Multimap<String, Connection> myConnectionsByTopic = HashMultimap.create();
     private final Multimap<String, Connection> myConnectionsByType = HashMultimap.create();
+    private final Multimap<Integer, ChunkInfo> myChunkInfosByConnectionId = HashMultimap.create();
     private final List<MessageData> myMessages = Lists.newArrayList();
     private final List<IndexData> myIndexes = Lists.newArrayList();
     private final List<ChunkInfo> myChunkInfos = Lists.newArrayList();
+    private final Map<String, List<MessageIndex>> myMessageIndexesForTopics = Maps.newHashMap();
+    private Chunk myPreviousChunk = null;
 
     private static final Logger myLogger = LoggerFactory.getLogger(BagFile.class);
 
+    private static class MessageIndex implements Comparable<MessageIndex> {
+        public long fileIndex;
+        public long chunkIndex;
+
+        public MessageIndex(long fileIndex, long chunkIndex) {
+            this.fileIndex = fileIndex;
+            this.chunkIndex = chunkIndex;
+        }
+
+        @Override
+        public int compareTo(MessageIndex o) {
+            int result = Long.compare(fileIndex, o.fileIndex);
+            if (result == 0) {
+                result = Long.compare(chunkIndex, o.chunkIndex);
+            }
+            return result;
+        }
+    }
 
     /**
      * Constructs a new BagFile that represents a bag at the given path.
@@ -186,6 +209,13 @@ public class BagFile {
         myConnectionsById.put(connection.getConnectionId(), connection);
         myConnectionsByTopic.put(connection.getTopic(), connection);
         myConnectionsByType.put(connection.getType(), connection);
+    }
+
+    private void addChunkInfo(ChunkInfo chunkInfo) {
+        myChunkInfos.add(chunkInfo);
+        for (ChunkInfo.ChunkConnection conn : chunkInfo.getConnections()) {
+            myChunkInfosByConnectionId.put(conn.getConnectionId(), chunkInfo);
+        }
     }
 
     /**
@@ -343,9 +373,9 @@ public class BagFile {
     /**
      * Searches through every connection in the bag for one on the specified
      * topic and returns the first message on that topic.
-     * NOTE: This will be the first message that is found in the bag file, which
-     * is <i>probably</i> the first one chronologically, but it might not be if
-     * the bag file was not written in chronological order.
+     * NOTE: There is no guarantee that this message will be the first one
+     * physically located in the bag file or the first one that was recorded
+     * chronologically.  It's simply the first one we can find.
      * @param topic The topic to search for, e.g. "/localization/gps"
      * @return The first message found on that topic, or null if none were found.
      * @throws BagReaderException If there was an error reading the bag.
@@ -469,6 +499,92 @@ public class BagFile {
      */
     public boolean isIndexed() {
         return !myIndexes.isEmpty();
+    }
+
+    /**
+     * Gets a message on the given topic at a particular index.
+     *
+     * Messages are sorted in the order they were written to the bag file,
+     * which may not be the same as their chronological order.
+     * @param topic The topic to get a message from.
+     * @param index The index of the message in the topic.
+     * @return The message at that position in the bag.
+     * @throws BagReaderException If there was an error reading the bag.
+     */
+    public MessageType getMessageOnTopicAtIndex(String topic, int index) throws BagReaderException {
+        topic = topic.trim();
+        List<MessageIndex> indexes = myMessageIndexesForTopics.get(topic);
+        if (indexes == null) {
+            generateIndexesForTopic(topic);
+            indexes = myMessageIndexesForTopics.get(topic);
+        }
+
+        if (index > indexes.size()) {
+            throw new ArrayIndexOutOfBoundsException(index);
+        }
+
+        MessageType mt;
+        try {
+            Connection conn = myConnectionsByTopic.get(topic).iterator().next();
+            mt = conn.getMessageCollection().getMessageType();
+        }
+        catch (UnknownMessageException e) {
+            throw new BagReaderException(e);
+        }
+
+        try (SeekableByteChannel channel = getChannel()) {
+            MessageIndex msgIndex = indexes.get(index);
+            Record record = BagFile.recordAt(channel, msgIndex.fileIndex);
+            ByteBufferChannel chunkChannel = new ByteBufferChannel(record.getData());
+            Record message = BagFile.recordAt(chunkChannel, msgIndex.chunkIndex);
+            mt.readMessage(message.getData().order(ByteOrder.LITTLE_ENDIAN));
+        }
+        catch (IOException e) {
+            throw new BagReaderException(e);
+        }
+
+        return mt;
+    }
+
+    /**
+     * Bags are supposed to have Index Data chunks that provided a convenient
+     * mechanism for finding the indexes of individual messages within chunks.
+     * In practice, they usually do not have this, so we have to iterate through
+     * chunks in order to find the positions of individual messages.
+     * This method builds up a list of indices for a particular topic and stores
+     * it so that we don't have to look through it every time we want to find
+     * a message.
+     * @param topic The topic to generate indices for.
+     * @throws BagReaderException If there was an error reading the bag file.
+     */
+    private void generateIndexesForTopic(String topic) throws BagReaderException {
+        List<MessageIndex> msgIndexes = Lists.newArrayList();
+        try (SeekableByteChannel channel = getChannel()) {
+            for (Connection conn : myConnectionsByTopic.get(topic)) {
+                for (ChunkInfo chunkInfo : myChunkInfosByConnectionId.get(conn.getConnectionId())) {
+                    long chunkPos = chunkInfo.getChunkPos();
+
+                    Record chunk = BagFile.recordAt(channel, chunkPos);
+                    chunk.readData();
+                    ByteBufferChannel chunkChannel = new ByteBufferChannel(chunk.getData());
+                    while (chunkChannel.position() < chunkChannel.size()) {
+                        long position = chunkChannel.position();
+                        Record msg = new Record(chunkChannel);
+                        msg.readData();
+                        if (msg.getHeader().getType() == Record.RecordType.MESSAGE_DATA &&
+                            msg.getHeader().getInt("conn") == conn.getConnectionId()) {
+                            msgIndexes.add(new MessageIndex(chunkPos, position));
+                        }
+                    }
+                }
+            }
+        }
+        catch (IOException e) {
+            throw new BagReaderException(e);
+        }
+
+        Collections.sort(msgIndexes);
+        myMessageIndexesForTopics.put(topic, msgIndexes);
     }
 
     /**
@@ -632,12 +748,14 @@ public class BagFile {
                     case BAG_HEADER:
                         this.myBagHeader = new BagHeader(record);
                         if (this.getBagHeader().getIndexPos() == 0) {
-                            throw new BagReaderException("Unable to read bag header; reindex the bag file.");
+                            throw new BagReaderException(
+                                    "Unable to read bag header; reindex the bag file.");
                         }
                         input.position(this.getBagHeader().getIndexPos());
                         break;
                     case CHUNK:
-                        this.getChunks().add(new Chunk(record));
+                        myPreviousChunk = new Chunk(record);
+                        this.getChunks().add(myPreviousChunk);
                         break;
                     case CONNECTION:
                         record.setConnectionHeader(new Header(record.getData()));
@@ -647,10 +765,14 @@ public class BagFile {
                         this.getMessages().add(new MessageData(record));
                         break;
                     case INDEX_DATA:
-                        this.getIndexes().add(new IndexData(record));
+                        if (myPreviousChunk == null) {
+                            throw new BagReaderException(
+                                    "No chunk found for index at position " + input.position());
+                        }
+                        this.getIndexes().add(new IndexData(record, myPreviousChunk));
                         break;
                     case CHUNK_INFO:
-                        this.getChunkInfos().add(new ChunkInfo(record));
+                        this.addChunkInfo(new ChunkInfo(record));
                         break;
                     default:
                         throw new BagReaderException("Unknown header type.");

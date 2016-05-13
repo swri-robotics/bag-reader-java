@@ -46,11 +46,13 @@ public class IndexData {
     private int myConnectionId;
     private int myCount;
     private final List<Index> myIndexes = new ArrayList<>();
+    private final Chunk myChunk;
 
-    public IndexData(Record record) throws BagReaderException {
+    public IndexData(Record record, Chunk chunk) throws BagReaderException {
         myVersion = record.getHeader().getInt("ver");
         myConnectionId = record.getHeader().getInt("conn");
         myCount = record.getHeader().getInt("count");
+        myChunk = chunk;
 
         ByteBuffer buffer = record.getData();
         for (int i = 0; i < myCount; i++) {
@@ -71,6 +73,10 @@ public class IndexData {
 
     public int getCount() {
         return myCount;
+    }
+
+    public Chunk getChunk() {
+        return myChunk;
     }
 
     public List<Index> getIndexes() {
