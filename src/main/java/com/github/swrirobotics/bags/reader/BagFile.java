@@ -511,7 +511,8 @@ public class BagFile {
      * @return The message at that position in the bag.
      * @throws BagReaderException If there was an error reading the bag.
      */
-    public MessageType getMessageOnTopicAtIndex(String topic, int index) throws BagReaderException {
+    public MessageType getMessageOnTopicAtIndex(String topic,
+                                                int index) throws BagReaderException {
         topic = topic.trim();
         List<MessageIndex> indexes = myMessageIndexesForTopics.get(topic);
         if (indexes == null) {

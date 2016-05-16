@@ -123,7 +123,7 @@ public class BagReader {
             // Prints out a unique fingerprint for the bag file.  Note that
             // this is not the same as doing an md5sum of the entire file.
             myLogger.info("Bag fingerprint: " + bag.getUniqueIdentifier());
-            
+
             // Prints some statistics about message deserialization.
             //MessageType.printStats();
         }
