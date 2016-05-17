@@ -34,8 +34,6 @@ import com.github.swrirobotics.bags.reader.exceptions.BagReaderException;
 import com.github.swrirobotics.bags.reader.exceptions.UninitializedFieldException;
 import com.github.swrirobotics.bags.reader.messages.serialization.Float64Type;
 import com.github.swrirobotics.bags.reader.messages.serialization.MessageType;
-import com.github.swrirobotics.bags.reader.messages.serialization.StringType;
-import com.github.swrirobotics.bags.reader.records.Connection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

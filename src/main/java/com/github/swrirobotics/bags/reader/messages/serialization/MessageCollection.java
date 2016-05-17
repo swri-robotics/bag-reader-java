@@ -30,9 +30,9 @@
 
 package com.github.swrirobotics.bags.reader.messages.serialization;
 
-import com.github.swrirobotics.bags.reader.records.Connection;
 import com.github.swrirobotics.bags.reader.exceptions.InvalidDefinitionException;
 import com.github.swrirobotics.bags.reader.exceptions.UnknownMessageException;
+import com.github.swrirobotics.bags.reader.records.Connection;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
@@ -215,7 +215,7 @@ public class MessageCollection {
      * @return A deserializer for the top message type.
      * @throws UnknownMessageException If no deserializer can be found for that message.
      */
-    MessageType getMessageType() throws UnknownMessageException {
+    public MessageType getMessageType() throws UnknownMessageException {
         if (myTopType == null) {
             throw new UnknownMessageException("Unknown");
         }

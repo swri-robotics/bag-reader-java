@@ -1,5 +1,10 @@
 # Java Bag Reader changelog
 
+1.3-SNAPSHOT
+
+- Implementing bulk deserialization of arrays
+- Adding an API call to get a message on a topic at a specific index
+
 1.2
 
 - Removing hard-coded GPS and vehicle name topics
