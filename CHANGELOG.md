@@ -1,6 +1,6 @@
 # Java Bag Reader changelog
 
-1.3-SNAPSHOT
+1.3
 
 - Implementing bulk deserialization of arrays
 - Adding an API call to get a message on a topic at a specific index
