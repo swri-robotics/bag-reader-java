@@ -471,6 +471,63 @@ public class BagFile {
     }
 
     /**
+     * If any chunks are compressed, this will return the most common type of
+     * compression used in this bag file (either "lz4" or "bz2").  If no
+     * chunks are compressed, this will return "none".
+     * This will iterate through all of the Chunk and ChunkInfo records in a
+     * bag, so it might be a little slow.
+     * @return The dominant compression type, "bz2" or "lz4", or "none" if there is none.
+     */
+    public String getCompressionType() {
+        long lz4Count = 0;
+        long bz2Count = 0;
+
+        // First, check all of the Chunk records we read.
+        for (Chunk chunk : myChunks) {
+            String compression = chunk.getCompression();
+            if (compression.equals("bz2")) {
+                bz2Count++;
+            }
+            else if (compression.equals("lz4")) {
+                lz4Count++;
+            }
+        }
+
+        // It's possible we may not have actually read any Chunk records, just
+        // ChunkInfo records that contain the position of Chunks.  In that
+        // case, we have to go look up the chunks and read them.
+        List<Long> chunkPositions = Lists.newArrayListWithExpectedSize(myChunkInfos.size() );
+        for (ChunkInfo info : myChunkInfos) {
+            chunkPositions.add(info.getChunkPos());
+        }
+        try (SeekableByteChannel channel = getChannel()) {
+            for (Long chunkPos : chunkPositions) {
+                Chunk chunk = new Chunk(recordAt(channel, chunkPos));
+                String compression = chunk.getCompression();
+                if (compression.equals("bz2")) {
+                    bz2Count++;
+                }
+                else if (compression.equals("lz4")) {
+                    lz4Count++;
+                }
+            }
+        }
+        catch ( IOException | BagReaderException e ) {
+            myLogger.warn("Error reading data chunk", e);
+        }
+
+        if (lz4Count > bz2Count) {
+            return "lz4";
+        }
+        else if (bz2Count > lz4Count && bz2Count != 0) {
+            return "bz2";
+        }
+        else {
+            return "none";
+        }
+    }
+
+    /**
      * Counts how many messages are in this bag file.  If this bag file is indexed,
      * it counts how many are listed in the indices; otherwise, it iterates through
      * chunks and connections to count how many are in there.
@@ -812,16 +869,17 @@ public class BagFile {
      * @throws BagReaderException
      */
     public void printInfo() throws BagReaderException {
-        myLogger.info("Version:  " + this.getVersion());
-        myLogger.info("Duration: " + this.getDurationS() + "s");
-        myLogger.info("Start:    " + (this.getStartTime() == null ?
+        myLogger.info("Version:     " + this.getVersion());
+        myLogger.info("Compression: " + this.getCompressionType());
+        myLogger.info("Duration:    " + this.getDurationS() + "s");
+        myLogger.info("Start:       " + (this.getStartTime() == null ?
                 "Unknown" : (this.getStartTime().toString() + " (" + this.getStartTime().getTime() + ")")));
-        myLogger.info("End:      " + (this.getEndTime() == null ?
+        myLogger.info("End:         " + (this.getEndTime() == null ?
                 "Unknown" : (this.getEndTime().toString() + " (" + this.getEndTime().getTime() + ")")));
-        myLogger.info("Size:     " +
+        myLogger.info("Size:        " +
                             (((double) this.getPath().toFile().length()) / 1024.0) + " MB");
-        myLogger.info("Messages: " + this.getMessageCount());
-        myLogger.info("Types:    ");
+        myLogger.info("Messages:    " + this.getMessageCount());
+        myLogger.info("Types:");
         for (Map.Entry<String, String> entry : this.getMessageTypes().entries()) {
             myLogger.info("  " + entry.getKey() + " \t\t[" + entry.getValue() + "]");
         }

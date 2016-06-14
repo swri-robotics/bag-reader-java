@@ -34,6 +34,8 @@ import com.github.swrirobotics.bags.reader.BagFile;
 import com.github.swrirobotics.bags.reader.exceptions.BagReaderException;
 import com.github.swrirobotics.bags.reader.records.ChunkInfo;
 import com.github.swrirobotics.bags.reader.records.Record;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.channels.SeekableByteChannel;
 import java.util.Iterator;
@@ -50,6 +52,8 @@ public class ChunkRecordIterator implements Iterator<Record> {
     private final Iterator<ChunkInfo> myChunkIter;
     private final int myConnId;
     private Record myNextRecord = null;
+
+    private static final Logger myLogger = LoggerFactory.getLogger(ChunkRecordIterator.class);
 
     /**
      * Creates the iterator.
@@ -115,6 +119,7 @@ public class ChunkRecordIterator implements Iterator<Record> {
             return chunk;
         }
         catch (BagReaderException e) {
+            myLogger.warn("Error reading data chunk", e);
             return null;
         }
     }

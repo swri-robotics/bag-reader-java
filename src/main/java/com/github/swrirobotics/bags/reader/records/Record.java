@@ -32,11 +32,13 @@ package com.github.swrirobotics.bags.reader.records;
 
 import com.fasterxml.jackson.databind.util.ByteBufferBackedInputStream;
 import com.github.swrirobotics.bags.reader.exceptions.BagReaderException;
+import net.jpountz.lz4.LZ4FrameInputStream;
 import org.apache.commons.compress.compressors.bzip2.BZip2CompressorInputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.channels.SeekableByteChannel;
@@ -139,7 +141,8 @@ public class Record {
 
     /**
      * Reads the data field of the record.  If the record is compressed, this
-     * will involve decompressing it.
+     * will involve decompressing it.  Currently both bz2 and lz4 compression
+     * are supported.
      * Do not call this method more than once, and do not call it if the channel
      * used to create this record has been closed.
      * @throws BagReaderException
@@ -150,29 +153,65 @@ public class Record {
             myChannel.position(myDataOffset);
             myChannel.read(myData);
 
-            // Chunks can have bz2-compressed myData in them, which we need to decompress in order
-            // to do anything useful with.
-            if (myHeader.getType() == RecordType.CHUNK && myHeader.getValue("compression").equals("bz2")) {
-                int decompressedSize = myHeader.getInt("size");
-                myData.flip();
-                try (ByteBufferBackedInputStream inStream = new ByteBufferBackedInputStream(myData);
-                     BZip2CompressorInputStream bz2Stream = new BZip2CompressorInputStream(inStream)) {
-                    final byte[] buffer = new byte[decompressedSize];
-                    int n = bz2Stream.read(buffer);
-                    if (n != decompressedSize) {
-                        throw new BagReaderException("Read " + n + " bytes from a " +
-                                                     "compressed chunk but expected " +
-                                                     decompressedSize + ".");
-                    }
+            // Chunks can have bz2 or lz4-compressed myData in them, which we need to
+            // decompress in order to do anything useful with.
+            if (myHeader.getType() == RecordType.CHUNK) {
+                String compression = myHeader.getValue("compression");
+                switch (compression) {
+                    case "none":
+                        // Do nothing here if not compressed
+                        break;
+                    case "bz2":
+                    case "lz4":
+                    {
+                        int decompressedSize = myHeader.getInt("size");
+                        myData.flip();
+                        try (ByteBufferBackedInputStream inStream = new ByteBufferBackedInputStream(myData);
+                             InputStream compressedStream = openCompressedStream(compression, inStream)) {
+                            final byte[] buffer = new byte[decompressedSize];
+                            int n = compressedStream.read(buffer);
+                            if (n != decompressedSize) {
+                                throw new BagReaderException("Read " + n + " bytes from a " +
+                                                             "compressed chunk but expected " +
+                                                             decompressedSize + ".");
+                            }
 
-                    myData = ByteBuffer.wrap(buffer);
+                            myData = ByteBuffer.wrap(buffer);
+                        }
+                        break;
+                    }
+                    default:
+                        myLogger.warn("Unknown compression format: " + compression);
+                        break;
                 }
             }
-
             myData.order(ByteOrder.LITTLE_ENDIAN);
         }
         catch (IOException e) {
             throw new BagReaderException(e);
+        }
+    }
+
+    /**
+     * Opens an input stream that will read compressed data of the specified type
+     * from a compressed input stream.
+     * @param compressionType The type of compression; currently supported values
+     *                        are "bz2" and "lz4".
+     * @param inStream An InputStream containing compressed data.
+     * @return An InputStream that will decompress data from that stream.
+     * @throws IOException If there was an error opening the stream.
+     * @throws BagReaderException If the compression type is not supported.
+     */
+    private InputStream openCompressedStream(String compressionType, InputStream inStream)
+            throws IOException, BagReaderException {
+        switch (compressionType) {
+            case "bz2":
+                return new BZip2CompressorInputStream(inStream);
+            case "lz4":
+                return new LZ4FrameInputStream(inStream);
+            default:
+                String error = "Unknown compression type: " + compressionType;
+                throw new BagReaderException(error);
         }
     }
 
