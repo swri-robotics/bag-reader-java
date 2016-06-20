@@ -1,5 +1,10 @@
 # Java Bag Reader changelog
 
+1.5
+
+- Acquiring shared locks when reading bag files
+- Logging warnings and throwing an exception if it fails to read the expected number of chunks and connections
+
 1.4
 
 - Added a custom fork of jpountz/lz4-java that is interoperable with the C++ library

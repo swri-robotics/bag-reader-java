@@ -50,6 +50,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.channels.FileChannel;
+import java.nio.channels.FileLock;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.SeekableByteChannel;
 import java.nio.file.FileSystems;
@@ -123,7 +124,7 @@ public class BagFile {
      * @return An open SeekableByteChannel.
      * @throws IOException If there is an error opening the file.
      */
-    public SeekableByteChannel getChannel() throws IOException {
+    public FileChannel getChannel() throws IOException {
         return FileChannel.open(getPath(), StandardOpenOption.READ);
     }
 
@@ -273,7 +274,8 @@ public class BagFile {
      */
     public void forFirstTopicWithMessagesOfType(String messageType, MessageHandler handler) throws BagReaderException {
         for (Connection conn : myConnectionsByType.get(messageType)) {
-            try (SeekableByteChannel channel = getChannel()) {
+            try (FileChannel channel = getChannel()) {
+                FileLock lock = channel.lock(0, Long.MAX_VALUE, true);
                 MsgIterator iter = new MsgIterator(myChunkInfos, conn, channel);
 
                 while (iter.hasNext()) {
@@ -304,7 +306,8 @@ public class BagFile {
      */
     public void forMessagesOfType(String messageType, MessageHandler handler) throws BagReaderException {
         for (Connection conn : myConnectionsByType.get(messageType)) {
-            try (SeekableByteChannel channel = getChannel()) {
+            try (FileChannel channel = getChannel()) {
+                FileLock lock = channel.lock(0, Long.MAX_VALUE, true);
                 MsgIterator iter = new MsgIterator(myChunkInfos, conn, channel);
 
                 while (iter.hasNext()) {
@@ -332,7 +335,8 @@ public class BagFile {
      */
     public void forMessagesOnTopic(String topic, MessageHandler handler) throws BagReaderException {
         for (Connection conn : myConnectionsByTopic.get(topic)) {
-            try (SeekableByteChannel channel = getChannel()) {
+            try (FileChannel channel = getChannel()) {
+                FileLock lock = channel.lock(0, Long.MAX_VALUE, true);
                 MsgIterator iter = new MsgIterator(myChunkInfos, conn, channel);
 
                 while (iter.hasNext()) {
@@ -356,7 +360,8 @@ public class BagFile {
      */
     public MessageType getFirstMessageOfType(String messageType) throws BagReaderException {
         for (Connection conn : myConnectionsByType.get(messageType)) {
-            try (SeekableByteChannel channel = getChannel()) {
+            try (FileChannel channel = getChannel()) {
+                FileLock lock = channel.lock(0, Long.MAX_VALUE, true);
                 MsgIterator iter = new MsgIterator(myChunkInfos, conn, channel);
                 if (iter.hasNext()) {
                     return iter.next();
@@ -382,7 +387,8 @@ public class BagFile {
      */
     public MessageType getFirstMessageOnTopic(String topic) throws BagReaderException {
         for (Connection conn : myConnectionsByTopic.get(topic)) {
-            try (SeekableByteChannel channel = getChannel()) {
+            try (FileChannel channel = getChannel()) {
+                FileLock lock = channel.lock(0, Long.MAX_VALUE, true);
                 MsgIterator iter = new MsgIterator(myChunkInfos, conn, channel);
                 if (iter.hasNext()) {
                     return iter.next();
@@ -500,7 +506,8 @@ public class BagFile {
         for (ChunkInfo info : myChunkInfos) {
             chunkPositions.add(info.getChunkPos());
         }
-        try (SeekableByteChannel channel = getChannel()) {
+        try (FileChannel channel = getChannel()) {
+            FileLock lock = channel.lock(0, Long.MAX_VALUE, true);
             for (Long chunkPos : chunkPositions) {
                 Chunk chunk = new Chunk(recordAt(channel, chunkPos));
                 String compression = chunk.getCompression();
@@ -590,7 +597,8 @@ public class BagFile {
             throw new BagReaderException(e);
         }
 
-        try (SeekableByteChannel channel = getChannel()) {
+        try (FileChannel channel = getChannel()) {
+            FileLock lock = channel.lock(0, Long.MAX_VALUE, true);
             MessageIndex msgIndex = indexes.get(index);
             Record record = BagFile.recordAt(channel, msgIndex.fileIndex);
             ByteBufferChannel chunkChannel = new ByteBufferChannel(record.getData());
@@ -617,7 +625,8 @@ public class BagFile {
      */
     private void generateIndexesForTopic(String topic) throws BagReaderException {
         List<MessageIndex> msgIndexes = Lists.newArrayList();
-        try (SeekableByteChannel channel = getChannel()) {
+        try (FileChannel channel = getChannel()) {
+            FileLock lock = channel.lock(0, Long.MAX_VALUE, true);
             for (Connection conn : myConnectionsByTopic.get(topic)) {
                 for (ChunkInfo chunkInfo : myChunkInfosByConnectionId.get(conn.getConnectionId())) {
                     long chunkPos = chunkInfo.getChunkPos();
@@ -797,7 +806,8 @@ public class BagFile {
             return;
         }
 
-        try (SeekableByteChannel input = getChannel()){
+        try (FileChannel input = getChannel()){
+            FileLock lock = input.lock(0, Long.MAX_VALUE, true);
             verifyBagFile(input);
 
             while (hasNext(input)) {
@@ -857,6 +867,28 @@ public class BagFile {
         }
         else {
             myLogger.warn("No chunk info records found; start and end time are unknown.");
+
+            myLogger.warn("Record type counts:" +
+                         "\n  Header: " + (this.getBagHeader() == null ? 0 : 1) +
+                         "\n  Chunk: " + this.getChunks().size() +
+                         "\n  Connection: " + this.getConnections().size() +
+                         "\n  Message Data: " + this.getMessages().size() +
+                         "\n  Index Data: " + this.getIndexes().size() +
+                         "\n  Chunk Info: " +  this.getChunkInfos().size());
+        }
+
+        if (this.getBagHeader().getChunkCount() !=
+                (this.getChunks().size() + this.getChunkInfos().size()) ||
+            this.getBagHeader().getConnCount() != this.getConnections().size()) {
+            String errorMsg = "Expected " + this.getBagHeader().getChunkCount() +
+                              " chunks and " + this.getBagHeader().getConnCount() +
+                              " connections, but got " +
+                              (this.getChunks().size() + this.getChunkInfos().size()) + " and " +
+                              this.getConnections().size() + ".  This is ok if the file " +
+                              "is in the middle of being written to disk, otherwise the bag " +
+                              "may be corrupt.";
+            myLogger.warn(errorMsg);
+            throw new BagReaderException(errorMsg);
         }
     }
 
