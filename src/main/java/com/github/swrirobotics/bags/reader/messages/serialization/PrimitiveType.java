@@ -92,6 +92,14 @@ public abstract class PrimitiveType<T> implements Field {
     abstract public void setValue(String value);
 
     /**
+     * Sets the value of this field from an object of the same type.
+     * @param value The value to set in this field.
+     */
+    public void setValue(T value) {
+        myValue = value;
+    }
+
+    /**
      * Creates a copy of this field.  The new field will have the same type,
      * name, and default value, but if this field had previously been read
      * and its value was set, that will not be copied.

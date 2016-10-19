@@ -50,7 +50,6 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.channels.FileChannel;
-import java.nio.channels.FileLock;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.SeekableByteChannel;
 import java.nio.file.FileSystems;
@@ -275,7 +274,6 @@ public class BagFile {
     public void forFirstTopicWithMessagesOfType(String messageType, MessageHandler handler) throws BagReaderException {
         for (Connection conn : myConnectionsByType.get(messageType)) {
             try (FileChannel channel = getChannel()) {
-                FileLock lock = channel.lock(0, Long.MAX_VALUE, true);
                 MsgIterator iter = new MsgIterator(myChunkInfos, conn, channel);
 
                 while (iter.hasNext()) {
@@ -307,7 +305,6 @@ public class BagFile {
     public void forMessagesOfType(String messageType, MessageHandler handler) throws BagReaderException {
         for (Connection conn : myConnectionsByType.get(messageType)) {
             try (FileChannel channel = getChannel()) {
-                FileLock lock = channel.lock(0, Long.MAX_VALUE, true);
                 MsgIterator iter = new MsgIterator(myChunkInfos, conn, channel);
 
                 while (iter.hasNext()) {
@@ -336,7 +333,6 @@ public class BagFile {
     public void forMessagesOnTopic(String topic, MessageHandler handler) throws BagReaderException {
         for (Connection conn : myConnectionsByTopic.get(topic)) {
             try (FileChannel channel = getChannel()) {
-                FileLock lock = channel.lock(0, Long.MAX_VALUE, true);
                 MsgIterator iter = new MsgIterator(myChunkInfos, conn, channel);
 
                 while (iter.hasNext()) {
@@ -361,7 +357,6 @@ public class BagFile {
     public MessageType getFirstMessageOfType(String messageType) throws BagReaderException {
         for (Connection conn : myConnectionsByType.get(messageType)) {
             try (FileChannel channel = getChannel()) {
-                FileLock lock = channel.lock(0, Long.MAX_VALUE, true);
                 MsgIterator iter = new MsgIterator(myChunkInfos, conn, channel);
                 if (iter.hasNext()) {
                     return iter.next();
@@ -388,7 +383,6 @@ public class BagFile {
     public MessageType getFirstMessageOnTopic(String topic) throws BagReaderException {
         for (Connection conn : myConnectionsByTopic.get(topic)) {
             try (FileChannel channel = getChannel()) {
-                FileLock lock = channel.lock(0, Long.MAX_VALUE, true);
                 MsgIterator iter = new MsgIterator(myChunkInfos, conn, channel);
                 if (iter.hasNext()) {
                     return iter.next();
@@ -507,7 +501,6 @@ public class BagFile {
             chunkPositions.add(info.getChunkPos());
         }
         try (FileChannel channel = getChannel()) {
-            FileLock lock = channel.lock(0, Long.MAX_VALUE, true);
             for (Long chunkPos : chunkPositions) {
                 Chunk chunk = new Chunk(recordAt(channel, chunkPos));
                 String compression = chunk.getCompression();
@@ -598,7 +591,6 @@ public class BagFile {
         }
 
         try (FileChannel channel = getChannel()) {
-            FileLock lock = channel.lock(0, Long.MAX_VALUE, true);
             MessageIndex msgIndex = indexes.get(index);
             Record record = BagFile.recordAt(channel, msgIndex.fileIndex);
             ByteBufferChannel chunkChannel = new ByteBufferChannel(record.getData());
@@ -626,7 +618,6 @@ public class BagFile {
     private void generateIndexesForTopic(String topic) throws BagReaderException {
         List<MessageIndex> msgIndexes = Lists.newArrayList();
         try (FileChannel channel = getChannel()) {
-            FileLock lock = channel.lock(0, Long.MAX_VALUE, true);
             for (Connection conn : myConnectionsByTopic.get(topic)) {
                 for (ChunkInfo chunkInfo : myChunkInfosByConnectionId.get(conn.getConnectionId())) {
                     long chunkPos = chunkInfo.getChunkPos();
@@ -807,7 +798,6 @@ public class BagFile {
         }
 
         try (FileChannel input = getChannel()){
-            FileLock lock = input.lock(0, Long.MAX_VALUE, true);
             verifyBagFile(input);
 
             while (hasNext(input)) {
