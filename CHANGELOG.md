@@ -1,5 +1,9 @@
 # Java Bag Reader changelog
 
+1.6
+
+- Removed file locking when reading bag files
+
 1.5
 
 - Acquiring shared locks when reading bag files
