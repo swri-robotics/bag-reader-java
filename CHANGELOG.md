@@ -1,5 +1,9 @@
 # Java Bag Reader changelog
 
+1.7
+
+- Also check times in index data records when determing start/end time
+
 1.6
 
 - Removed file locking when reading bag files

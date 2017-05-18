@@ -842,17 +842,23 @@ public class BagFile {
         }
 
         for (ChunkInfo info : this.myChunkInfos) {
-            if (this.getStartTime() == null ||
-                    info.getStartTime().compareTo(this.getStartTime()) < 0) {
-                this.myStartTime = info.getStartTime();
-            }
-            if (this.getEndTime() == null ||
-                    info.getEndTime().compareTo(this.getEndTime()) > 0) {
-                this.myEndTime = info.getEndTime();
+            this.myStartTime = minTimestamp(this.myStartTime, info.getStartTime());
+            this.myStartTime = minTimestamp(this.myStartTime, info.getEndTime());
+            this.myEndTime = maxTimestamp(this.myEndTime, info.getStartTime());
+            this.myEndTime = maxTimestamp(this.myEndTime, info.getEndTime());
+        }
+
+        for (IndexData indexData : this.myIndexes) {
+            for (IndexData.Index index : indexData.getIndexes()) {
+                this.myStartTime = minTimestamp(this.myStartTime, index.getTime());
+                this.myEndTime = maxTimestamp(this.myEndTime, index.getTime());
             }
         }
 
-        if (this.getStartTime() != null && this.getEndTime() != null) {
+        if (this.getStartTime() != null &&
+            this.getEndTime() != null &&
+            this.getStartTime().getTime() != 0 &&
+            this.getEndTime().getTime() != 0) {
             this.myDurationS = ((double) (this.getEndTime().getTime() - this.getStartTime().getTime())) / 1000.0;
         }
         else {
@@ -880,6 +886,46 @@ public class BagFile {
             myLogger.warn(errorMsg);
             throw new BagReaderException(errorMsg);
         }
+    }
+
+    /**
+     * Compares two timestamps and returns the smallest value.  If one value is
+     * null, it will return the other value.
+     * @param left First timestamp to compare.
+     * @param right Second timestamp to compare.
+     * @return The smallest value.
+     */
+    private static Timestamp minTimestamp(Timestamp left, Timestamp right) {
+        if (left == null) {
+            return right;
+        }
+        if (right == null) {
+            return left;
+        }
+        if (left.compareTo(right) < 0) {
+            return left;
+        }
+        return right;
+    }
+
+    /**
+     * Compares two timestamps and returns the largest value.  If one value is
+     * null, it will return the other value.
+     * @param left First timestamp to compare.
+     * @param right Second timestamp to compare.
+     * @return The largest value.
+     */
+    private static Timestamp maxTimestamp(Timestamp left, Timestamp right) {
+        if (left == null) {
+            return right;
+        }
+        if (right == null) {
+            return left;
+        }
+        if (left.compareTo(right) > 0) {
+            return left;
+        }
+        return right;
     }
 
     /**
