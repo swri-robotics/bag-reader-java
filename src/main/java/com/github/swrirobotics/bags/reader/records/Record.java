@@ -34,6 +34,7 @@ import com.fasterxml.jackson.databind.util.ByteBufferBackedInputStream;
 import com.github.swrirobotics.bags.reader.exceptions.BagReaderException;
 import net.jpountz.lz4.LZ4FrameInputStream;
 import org.apache.commons.compress.compressors.bzip2.BZip2CompressorInputStream;
+import org.apache.commons.compress.utils.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -169,7 +170,7 @@ public class Record {
                         try (ByteBufferBackedInputStream inStream = new ByteBufferBackedInputStream(myData);
                              InputStream compressedStream = openCompressedStream(compression, inStream)) {
                             final byte[] buffer = new byte[decompressedSize];
-                            int n = compressedStream.read(buffer);
+                            int n = IOUtils.readFully(compressedStream, buffer);
                             if (n != decompressedSize) {
                                 throw new BagReaderException("Read " + n + " bytes from a " +
                                                              "compressed chunk but expected " +
