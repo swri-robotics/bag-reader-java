@@ -6,7 +6,7 @@
     <parent>
         <groupId>com.jcabi</groupId>
         <artifactId>parent</artifactId>
-        <version>0.39</version>
+        <version>0.48.4</version>
     </parent>
     <groupId>com.github.swri-robotics</groupId>
     <artifactId>bag-reader-java</artifactId>
