@@ -788,7 +788,7 @@ public class BagFile {
      * the bag file.  {@link BagReader#readFile(File)} and {@link BagReader#readFile(String)}
      * will automatically do that for you; if you create a BagFile using
      * {@link #BagFile(String)}, you must manually call this.
-     * This will only read a bag file ones.  Successive calls to this method
+     * This will only read a bag file once.  Successive calls to this method
      * will have no effect.
      * @throws BagReaderException
      */

@@ -414,6 +414,14 @@ public class MessageType implements Field {
     }
 
     /**
+     * Returns a list containing all of the field names found in this message.
+     * @return
+     */
+    public List<String> getFieldNames() {
+        return Lists.newArrayList(myFieldNameMap.keySet());
+    }
+
+    /**
      * The ROS message type without a package; for example, "String"
      * @return The ROS message type of the field.
      */
