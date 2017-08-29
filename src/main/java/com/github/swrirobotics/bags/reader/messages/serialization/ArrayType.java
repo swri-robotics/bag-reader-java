@@ -85,8 +85,19 @@ public class ArrayType implements Field {
     }
 
     public short[] getAsShorts() {
-        short[] tmp = new short[myData.capacity() / 2];
-        myData.asShortBuffer().get(tmp);
+        short tmp[];
+        if (myTypeName.equals("uint8[]")) {
+            tmp = new short[myData.capacity()];
+            byte bytes[] = new byte[myData.capacity()];
+            myData.get(bytes);
+            for(int i = 0; i < bytes.length; i++) {
+                tmp[i] = (short)((short)bytes[i] & 0xff);
+            }
+        }
+        else {
+            tmp = new short[myData.capacity() / 2];
+            myData.asShortBuffer().get(tmp);
+        }
         return tmp;
     }
 
