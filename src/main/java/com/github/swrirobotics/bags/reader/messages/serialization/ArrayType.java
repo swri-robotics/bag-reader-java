@@ -102,26 +102,48 @@ public class ArrayType implements Field {
     }
 
     public int[] getAsInts() {
-        int[] tmp = new int[myData.capacity() / 4];
-        myData.asIntBuffer().get(tmp);
+        int[] tmp;
+        if (myTypeName.equals("uint16[]")) {
+            tmp = new int[myData.capacity() / 2];
+            short shorts[] = new short[myData.capacity() / 2];
+            myData.order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(shorts);
+            for (int i = 0; i < shorts.length; i++) {
+                tmp[i] = (int)shorts[i] & 0xffff;
+            }
+        }
+        else {
+            tmp = new int[myData.capacity() / 4];
+            myData.asIntBuffer().get(tmp);
+        }
         return tmp;
     }
 
     public long[] getAsLongs() {
-        long[] tmp = new long[myData.capacity() / 8];
-        myData.asLongBuffer().get(tmp);
+        long[] tmp;
+        if (myTypeName.equals("uint32[]")) {
+            tmp = new long[myData.capacity() / 4];
+            int ints[] = new int[myData.capacity() / 4];
+            myData.order(ByteOrder.LITTLE_ENDIAN).asIntBuffer().get(ints);
+            for (int i = 0; i < ints.length; i++) {
+                tmp[i] = (long)ints[i] & 0xffffffffL;
+            }
+        }
+        else {
+            tmp = new long[myData.capacity() / 8];
+            myData.asLongBuffer().get(tmp);
+        }
         return tmp;
     }
 
     public float[] getAsFloats() {
         float[] tmp = new float[myData.capacity() / 4];
-        myData.asFloatBuffer().get(tmp);
+        myData.order(ByteOrder.LITTLE_ENDIAN).asFloatBuffer().get(tmp);
         return tmp;
     }
 
     public double[] getAsDoubles() {
         double[] tmp = new double[myData.capacity() / 8];
-        myData.asDoubleBuffer().get(tmp);
+        myData.order(ByteOrder.LITTLE_ENDIAN).asDoubleBuffer().get(tmp);
         return tmp;
     }
 

@@ -32,15 +32,9 @@ package com.github.swrirobotics.bags.reader;
 
 import com.github.swrirobotics.bags.reader.exceptions.BagReaderException;
 import com.github.swrirobotics.bags.reader.exceptions.UninitializedFieldException;
-import com.github.swrirobotics.bags.reader.messages.serialization.ArrayType;
-import com.github.swrirobotics.bags.reader.messages.serialization.Float64Type;
-import com.github.swrirobotics.bags.reader.messages.serialization.MessageType;
-import com.github.swrirobotics.bags.reader.messages.serialization.UInt8Type;
+import com.github.swrirobotics.bags.reader.messages.serialization.*;
 import com.github.swrirobotics.bags.reader.records.Connection;
-import com.google.common.base.Joiner;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.File;
 
@@ -59,7 +53,7 @@ public class TestBagFile {
             public boolean process(MessageType message, Connection connection) {
                 UInt8Type data = message.getField("data");
                 try {
-                    assertEquals(180, data.getValue().longValue());
+                    assertEquals(180, data.getValue().shortValue());
                 }
                 catch (UninitializedFieldException e) {
                     fail();
@@ -77,18 +71,147 @@ public class TestBagFile {
         BagFile bag = new BagFile(file.getPath());
         final int[] count = {0};
         bag.read();
-        final Logger logger = LoggerFactory.getLogger(TestBagFile.class);
         bag.forMessagesOnTopic("/data", new MessageHandler() {
             @Override
             public boolean process(MessageType message, Connection connection) {
                 ArrayType data = message.getField("data");
-                logger.info("Type: " + data.getType());
                 short[] values = data.getAsShorts();
-                logger.info("Values: " + values[0] + " " + values[1] + " " + values[2] + " " + values[3]);
                 assertEquals(180, values[0]);
                 assertEquals(248, values[1]);
                 assertEquals(151, values[2]);
                 assertEquals(192, values[3]);
+                count[0]++;
+                return true;
+            }
+        });
+        assertEquals(1, count[0]);
+    }
+
+    @Test
+    public void testUInt16() throws BagReaderException {
+        File file = new File("src/test/resources/UInt16.bag");
+        BagFile bag = new BagFile(file.getPath());
+        final int[] count = {0};
+        bag.read();
+        bag.forMessagesOnTopic("/data", new MessageHandler() {
+            @Override
+            public boolean process(MessageType message, Connection connection) {
+                UInt16Type data = message.getField("data");
+                try {
+                    assertEquals(65535, data.getValue().intValue());
+                }
+                catch (UninitializedFieldException e) {
+                    fail();
+                }
+                count[0]++;
+                return true;
+            }
+        });
+        assertEquals(1, count[0]);
+    }
+
+    @Test
+    public void testUInt16MultiArray() throws BagReaderException {
+        File file = new File("src/test/resources/UInt16MultiArray.bag");
+        BagFile bag = new BagFile(file.getPath());
+        final int[] count = {0};
+        bag.read();
+        bag.forMessagesOnTopic("/data", new MessageHandler() {
+            @Override
+            public boolean process(MessageType message, Connection connection) {
+                ArrayType data = message.getField("data");
+                int[] values = data.getAsInts();
+                assertEquals(0, values[0]);
+                assertEquals(30000, values[1]);
+                assertEquals(65535, values[2]);
+                count[0]++;
+                return true;
+            }
+        });
+        assertEquals(1, count[0]);
+    }
+
+    @Test
+    public void testUInt32() throws BagReaderException {
+        File file = new File("src/test/resources/UInt32.bag");
+        BagFile bag = new BagFile(file.getPath());
+        final int[] count = {0};
+        bag.read();
+        bag.forMessagesOnTopic("/data", new MessageHandler() {
+            @Override
+            public boolean process(MessageType message, Connection connection) {
+                UInt32Type data = message.getField("data");
+                try {
+                    assertEquals(4294967294L, data.getValue().longValue());
+                }
+                catch (UninitializedFieldException e) {
+                    fail();
+                }
+                count[0]++;
+                return true;
+            }
+        });
+        assertEquals(1, count[0]);
+    }
+
+    @Test
+    public void testUInt32MultiArray() throws BagReaderException {
+        File file = new File("src/test/resources/UInt32MultiArray.bag");
+        BagFile bag = new BagFile(file.getPath());
+        final int[] count = {0};
+        bag.read();
+        bag.forMessagesOnTopic("/data", new MessageHandler() {
+            @Override
+            public boolean process(MessageType message, Connection connection) {
+                ArrayType data = message.getField("data");
+                long[] values = data.getAsLongs();
+                assertEquals(0, values[0]);
+                assertEquals(2000000000L, values[1]);
+                assertEquals(4294967294L, values[2]);
+                count[0]++;
+                return true;
+            }
+        });
+        assertEquals(1, count[0]);
+    }
+
+    @Test
+    public void testFloat32() throws BagReaderException {
+        File file = new File("src/test/resources/Float32.bag");
+        BagFile bag = new BagFile(file.getPath());
+        final int[] count = {0};
+        bag.read();
+        bag.forMessagesOnTopic("/data", new MessageHandler() {
+            @Override
+            public boolean process(MessageType message, Connection connection) {
+                Float32Type data = message.getField("data");
+                try {
+                    assertEquals(3.14159, data.getValue(), 0.00001);
+                }
+                catch (UninitializedFieldException e) {
+                    fail();
+                }
+                count[0]++;
+                return true;
+            }
+        });
+        assertEquals(1, count[0]);
+    }
+
+
+    @Test
+    public void testFloat32MultiArray() throws BagReaderException {
+        File file = new File("src/test/resources/Float32MultiArray.bag");
+        BagFile bag = new BagFile(file.getPath());
+        final int[] count = {0};
+        bag.read();
+        bag.forMessagesOnTopic("/data", new MessageHandler() {
+            @Override
+            public boolean process(MessageType message, Connection connection) {
+                ArrayType data = message.getField("data");
+                float[] values = data.getAsFloats();
+                assertEquals(0.0, values[0], 0.00001);
+                assertEquals(3.14159, values[1], 0.00001);
                 count[0]++;
                 return true;
             }
