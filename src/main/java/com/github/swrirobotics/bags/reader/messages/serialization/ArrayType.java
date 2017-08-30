@@ -96,7 +96,7 @@ public class ArrayType implements Field {
         }
         else {
             tmp = new short[myData.capacity() / 2];
-            myData.asShortBuffer().get(tmp);
+            myData.order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(tmp);
         }
         return tmp;
     }
@@ -113,7 +113,7 @@ public class ArrayType implements Field {
         }
         else {
             tmp = new int[myData.capacity() / 4];
-            myData.asIntBuffer().get(tmp);
+            myData.order(ByteOrder.LITTLE_ENDIAN).asIntBuffer().get(tmp);
         }
         return tmp;
     }
@@ -130,7 +130,7 @@ public class ArrayType implements Field {
         }
         else {
             tmp = new long[myData.capacity() / 8];
-            myData.asLongBuffer().get(tmp);
+            myData.order(ByteOrder.LITTLE_ENDIAN).asLongBuffer().get(tmp);
         }
         return tmp;
     }
