@@ -18,7 +18,7 @@ Add the following dependency to your Maven pom.xml:
 <dependency>
     <groupId>com.github.swri-robotics</groupId>
     <artifactId>bag-reader-java</artifactId>
-    <version>1.7</version>
+    <version>1.9</version>
 </dependency>
 ```
 
@@ -30,6 +30,31 @@ The general pattern you'll follow is:
 2. Call forMessagesOfType() or forMessagesOnTopic() on your BagFile to iterate through all of the messages on a particular type or topic.
 
 Read over the Javadocs for the BagFile class; it has many other methods you can use to extract data from the bag file in various ways, such as looking for only the first message of a type or on a topic, or directly looking through individual connections.
+
+## Type Conversions
+
+The field types in ROS messages do not all have exact equivalents in Java, so they are converted into
+similar types that are capable of representing them.  Keep in mind that because Java does not have any unsigned types,
+`uint` types must be stored in the next-larger type in order to preserve their entire possible range.
+
+| ROS Type | Java type |
+| -------- | --------- |
+| bool     | Boolean   |
+| byte     | Byte      |
+| int8     | Byte      |
+| char     | Short     |
+| uint8    | Short     |
+| int16    | Short     |
+| uint16   | Integer   |
+| int32    | Integer   |
+| uint32   | Long      |
+| int64    | Long      |
+| uint64   | java.math.BigInteger |
+| float32  | Float     |
+| float64  | Double    |
+| string   | java.lang.String |
+| time     | java.sql.Timestamp |
+| duration | Double    |
 
 ## Examples
 
