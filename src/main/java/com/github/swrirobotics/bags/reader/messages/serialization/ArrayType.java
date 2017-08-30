@@ -33,6 +33,7 @@ package com.github.swrirobotics.bags.reader.messages.serialization;
 import com.github.swrirobotics.bags.reader.exceptions.UninitializedFieldException;
 import com.google.common.collect.Lists;
 
+import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.sql.Timestamp;
@@ -96,7 +97,7 @@ public class ArrayType implements Field {
         }
         else {
             tmp = new short[myData.capacity() / 2];
-            myData.order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(tmp);
+            myData.asShortBuffer().get(tmp);
         }
         return tmp;
     }
@@ -106,14 +107,14 @@ public class ArrayType implements Field {
         if (myTypeName.equals("uint16[]")) {
             tmp = new int[myData.capacity() / 2];
             short shorts[] = new short[myData.capacity() / 2];
-            myData.order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(shorts);
+            myData.asShortBuffer().get(shorts);
             for (int i = 0; i < shorts.length; i++) {
                 tmp[i] = (int)shorts[i] & 0xffff;
             }
         }
         else {
             tmp = new int[myData.capacity() / 4];
-            myData.order(ByteOrder.LITTLE_ENDIAN).asIntBuffer().get(tmp);
+            myData.asIntBuffer().get(tmp);
         }
         return tmp;
     }
@@ -123,27 +124,37 @@ public class ArrayType implements Field {
         if (myTypeName.equals("uint32[]")) {
             tmp = new long[myData.capacity() / 4];
             int ints[] = new int[myData.capacity() / 4];
-            myData.order(ByteOrder.LITTLE_ENDIAN).asIntBuffer().get(ints);
+            myData.asIntBuffer().get(ints);
             for (int i = 0; i < ints.length; i++) {
                 tmp[i] = (long)ints[i] & 0xffffffffL;
             }
         }
         else {
             tmp = new long[myData.capacity() / 8];
-            myData.order(ByteOrder.LITTLE_ENDIAN).asLongBuffer().get(tmp);
+            myData.asLongBuffer().get(tmp);
         }
         return tmp;
     }
 
+    public BigInteger[] getAsBigIntegers() {
+        BigInteger[] bigints = new BigInteger[myData.capacity() / 8];
+        byte[] tmp = new byte[8];
+        for (int i = 0; i < myData.capacity(); i += 8) {
+            myData.get(tmp);
+            bigints[i / 8] = new BigInteger(1, tmp);
+        }
+        return bigints;
+    }
+
     public float[] getAsFloats() {
         float[] tmp = new float[myData.capacity() / 4];
-        myData.order(ByteOrder.LITTLE_ENDIAN).asFloatBuffer().get(tmp);
+        myData.asFloatBuffer().get(tmp);
         return tmp;
     }
 
     public double[] getAsDoubles() {
         double[] tmp = new double[myData.capacity() / 8];
-        myData.order(ByteOrder.LITTLE_ENDIAN).asDoubleBuffer().get(tmp);
+        myData.asDoubleBuffer().get(tmp);
         return tmp;
     }
 
@@ -211,14 +222,14 @@ public class ArrayType implements Field {
             case "uint16":
                 tempBytes = new byte[length * 2];
                 buffer.get(tempBytes);
-                myData = ByteBuffer.wrap(tempBytes);
+                myData = ByteBuffer.wrap(tempBytes).order(ByteOrder.LITTLE_ENDIAN);
                 break;
             case "int32":
             case "uint32":
             case "float32":
                 tempBytes = new byte[length * 4];
                 buffer.get(tempBytes);
-                myData = ByteBuffer.wrap(tempBytes);
+                myData = ByteBuffer.wrap(tempBytes).order(ByteOrder.LITTLE_ENDIAN);
                 break;
             case "duration":
             case "float64":
@@ -227,7 +238,7 @@ public class ArrayType implements Field {
             case "uint64":
                 tempBytes = new byte[length * 8];
                 buffer.get(tempBytes);
-                myData = ByteBuffer.wrap(tempBytes);
+                myData = ByteBuffer.wrap(tempBytes).order(ByteOrder.LITTLE_ENDIAN);
                 break;
             default:
                 // strings and other complex messages

@@ -42,14 +42,9 @@ public class UInt64Type extends PrimitiveType<BigInteger> {
         if (myValue != null) {
             return;
         }
-        long longVal = buffer.getLong();
-        if (longVal >= 0) {
-            myValue = BigInteger.valueOf(longVal);
-        }
-        else {
-            // So ugly, but an unsigned long might not fit into a Java long, so...
-            myValue = BigInteger.valueOf(Long.MAX_VALUE).add(BigInteger.ONE).add(BigInteger.valueOf(longVal));
-        }
+        byte[] bytes = new byte[8];
+        buffer.get(bytes);
+        myValue = new BigInteger(1, bytes);
     }
 
     @Override
