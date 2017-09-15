@@ -1,5 +1,14 @@
 # Java Bag Reader changelog
 
+1.9.0
+
+- Fix reading arrays of primitive types
+- Add MessageType.getFieldNames() method
+
+1.8
+
+- Fix bugs when reading LZ4-compressed bags
+
 1.7
 
 - Also check times in index data records when determing start/end time

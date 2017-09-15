@@ -11,7 +11,7 @@
     <groupId>com.github.swri-robotics</groupId>
     <artifactId>bag-reader-java</artifactId>
     <packaging>jar</packaging>
-    <version>1.9.0-SNAPSHOT</version>
+    <version>1.9.0</version>
     <name>bag-reader-java</name>
     <url>https://github.com/swri-robotics/bag-reader-java</url>
     <properties>
