@@ -33,6 +33,7 @@ package com.github.swrirobotics.bags.reader.messages.serialization;
 import com.github.swrirobotics.bags.reader.exceptions.UninitializedFieldException;
 import com.google.common.collect.Lists;
 
+import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.sql.Timestamp;
@@ -78,42 +79,118 @@ public class ArrayType implements Field {
         myData = myData.order(order);
     }
 
+    /**
+     * Returns the contents of the buffer as bytes.  This is appropriate for
+     * byte and int8 types.  Note that "byte" is deprecated.
+     */
     public byte[] getAsBytes() {
         byte[] tmp = new byte[myData.capacity()];
         myData.get(tmp);
         return tmp;
     }
 
+    /**
+     * Returns the contents of the buffer as shorts.  This is appropriate for
+     * char, uint8, and int16 types.  Note that "char" is deprecated.
+     */
     public short[] getAsShorts() {
-        short[] tmp = new short[myData.capacity() / 2];
-        myData.asShortBuffer().get(tmp);
+        short tmp[];
+        if (myTypeName.equals("uint8[]")) {
+            tmp = new short[myData.capacity()];
+            byte bytes[] = new byte[myData.capacity()];
+            myData.get(bytes);
+            for(int i = 0; i < bytes.length; i++) {
+                tmp[i] = (short)((short)bytes[i] & 0xff);
+            }
+        }
+        else {
+            tmp = new short[myData.capacity() / 2];
+            myData.asShortBuffer().get(tmp);
+        }
         return tmp;
     }
 
+    /**
+     * Returns the contents of the buffer as ints.  This is appropriate for
+     * uint16 and int32 types.
+     */
     public int[] getAsInts() {
-        int[] tmp = new int[myData.capacity() / 4];
-        myData.asIntBuffer().get(tmp);
+        int[] tmp;
+        if (myTypeName.equals("uint16[]")) {
+            tmp = new int[myData.capacity() / 2];
+            short shorts[] = new short[myData.capacity() / 2];
+            myData.asShortBuffer().get(shorts);
+            for (int i = 0; i < shorts.length; i++) {
+                tmp[i] = (int)shorts[i] & 0xffff;
+            }
+        }
+        else {
+            tmp = new int[myData.capacity() / 4];
+            myData.asIntBuffer().get(tmp);
+        }
         return tmp;
     }
 
+    /**
+     * Returns the contents of the buffer as longs.  This is appropriate for
+     * uint32 and int64 types.
+     */
     public long[] getAsLongs() {
-        long[] tmp = new long[myData.capacity() / 8];
-        myData.asLongBuffer().get(tmp);
+        long[] tmp;
+        if (myTypeName.equals("uint32[]")) {
+            tmp = new long[myData.capacity() / 4];
+            int ints[] = new int[myData.capacity() / 4];
+            myData.asIntBuffer().get(ints);
+            for (int i = 0; i < ints.length; i++) {
+                tmp[i] = (long)ints[i] & 0xffffffffL;
+            }
+        }
+        else {
+            tmp = new long[myData.capacity() / 8];
+            myData.asLongBuffer().get(tmp);
+        }
         return tmp;
     }
 
+    /**
+     * Returns the contents of the buffer as BigIntegers.  This is appropriate
+     * for uint64 types.
+     * @return
+     */
+    public BigInteger[] getAsBigIntegers() {
+        BigInteger[] bigints = new BigInteger[myData.capacity() / 8];
+        byte[] tmp = new byte[8];
+        for (int i = 0; i < myData.capacity(); i += 8) {
+            myData.get(tmp);
+            bigints[i / 8] = new BigInteger(1, tmp);
+        }
+        return bigints;
+    }
+
+    /**
+     * Returns the contents of the buffer as floats.  This is appropriate
+     * for the float32 type.
+     */
     public float[] getAsFloats() {
         float[] tmp = new float[myData.capacity() / 4];
         myData.asFloatBuffer().get(tmp);
         return tmp;
     }
 
+    /**
+     * Returns the contents of the buffer as doubles.  This is appropriate
+     * for the float64 type.
+     */
     public double[] getAsDoubles() {
         double[] tmp = new double[myData.capacity() / 8];
         myData.asDoubleBuffer().get(tmp);
         return tmp;
     }
 
+    /**
+     * Returns the contents of the buffer as doubles that represent a
+     * duration in seconds.  This is appropriate for the duration type.
+     */
     public double[] getAsDurations() {
         int[] intValues = getAsInts();
         double[] durations = new double[intValues.length/2];
@@ -126,6 +203,10 @@ public class ArrayType implements Field {
         return durations;
     }
 
+    /**
+     * Returns the contents of the buffer as Timestamps.  This is appropriate
+     * for the time type.
+     */
     public Timestamp[] getAsTimestamps() {
         int[] intValues = getAsInts();
         Timestamp[] timestamps = new Timestamp[intValues.length/2];
@@ -178,14 +259,14 @@ public class ArrayType implements Field {
             case "uint16":
                 tempBytes = new byte[length * 2];
                 buffer.get(tempBytes);
-                myData = ByteBuffer.wrap(tempBytes);
+                myData = ByteBuffer.wrap(tempBytes).order(ByteOrder.LITTLE_ENDIAN);
                 break;
             case "int32":
             case "uint32":
             case "float32":
                 tempBytes = new byte[length * 4];
                 buffer.get(tempBytes);
-                myData = ByteBuffer.wrap(tempBytes);
+                myData = ByteBuffer.wrap(tempBytes).order(ByteOrder.LITTLE_ENDIAN);
                 break;
             case "duration":
             case "float64":
@@ -194,7 +275,7 @@ public class ArrayType implements Field {
             case "uint64":
                 tempBytes = new byte[length * 8];
                 buffer.get(tempBytes);
-                myData = ByteBuffer.wrap(tempBytes);
+                myData = ByteBuffer.wrap(tempBytes).order(ByteOrder.LITTLE_ENDIAN);
                 break;
             default:
                 // strings and other complex messages
