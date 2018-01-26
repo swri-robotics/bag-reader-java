@@ -35,6 +35,7 @@ import com.github.swrirobotics.bags.reader.exceptions.UninitializedFieldExceptio
 import com.github.swrirobotics.bags.reader.messages.serialization.*;
 import com.github.swrirobotics.bags.reader.records.Connection;
 import org.junit.Test;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.math.BigInteger;
@@ -499,12 +500,27 @@ public class TestBagFile {
                     // First, get the array named "fields"
                     ArrayType data = message.getField("fields");
                     List<Field> pointFields = data.getFields();
+                    assertEquals(5, pointFields.size());
                     // The array is of type sensor_msgs/PointField, and to read that,
                     // we have to cast it to a MessageType and then access its
                     // individual fields.
                     MessageType pointField = (MessageType)pointFields.get(0);
-                    String name = pointField.<StringType>getField("name").getValue();
-                    assertEquals("x", name);
+                    assertEquals("x", pointField.<StringType>getField("name").getValue());
+                    assertEquals(0, pointField.<UInt32Type>getField("offset").getValue().intValue());
+                    assertEquals(7, pointField.<UInt8Type>getField("datatype").getValue().intValue());
+                    assertEquals(1, pointField.<UInt32Type>getField("count").getValue().intValue());
+
+                    pointField = (MessageType)pointFields.get(1);
+                    assertEquals("y", pointField.<StringType>getField("name").getValue());
+
+                    pointField = (MessageType)pointFields.get(2);
+                    assertEquals("z", pointField.<StringType>getField("name").getValue());
+
+                    pointField = (MessageType)pointFields.get(3);
+                    assertEquals("intensity", pointField.<StringType>getField("name").getValue());
+
+                    pointField = (MessageType)pointFields.get(4);
+                    assertEquals("ring", pointField.<StringType>getField("name").getValue());
                 }
                 catch (UninitializedFieldException e) {
                     return false;
