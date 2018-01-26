@@ -35,12 +35,10 @@ import com.github.swrirobotics.bags.reader.exceptions.UninitializedFieldExceptio
 import com.github.swrirobotics.bags.reader.messages.serialization.*;
 import com.github.swrirobotics.bags.reader.records.Connection;
 import org.junit.Test;
-import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.math.BigInteger;
 import java.util.List;
-import java.util.logging.LogManager;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
