@@ -38,6 +38,7 @@ import org.junit.Test;
 
 import java.io.File;
 import java.math.BigInteger;
+import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
@@ -475,6 +476,54 @@ public class TestBagFile {
                 ArrayType data = message.getField("data");
                 double[] values = data.getAsDoubles();
                 assertEquals(1.003062456558312, values[0], 0.000000001);
+                count[0]++;
+                return true;
+            }
+        });
+        assertEquals(1, count[0]);
+    }
+
+    @Test
+    public void testPointCloud() throws BagReaderException {
+        File file = new File("src/test/resources/PointCloud2.bag");
+        BagFile bag = new BagFile(file.getPath());
+        final int[] count = {0};
+        bag.read();
+        bag.forMessagesOnTopic("/pointcloud2", new MessageHandler() {
+            @Override
+            public boolean process(MessageType message, Connection connection) {
+                try {
+                    assertEquals(124914,
+                                 message.<UInt32Type>getField("width").getValue().longValue());
+
+                    // First, get the array named "fields"
+                    ArrayType data = message.getField("fields");
+                    List<Field> pointFields = data.getFields();
+                    assertEquals(5, pointFields.size());
+                    // The array is of type sensor_msgs/PointField, and to read that,
+                    // we have to cast it to a MessageType and then access its
+                    // individual fields.
+                    MessageType pointField = (MessageType)pointFields.get(0);
+                    assertEquals("x", pointField.<StringType>getField("name").getValue());
+                    assertEquals(0, pointField.<UInt32Type>getField("offset").getValue().intValue());
+                    assertEquals(7, pointField.<UInt8Type>getField("datatype").getValue().intValue());
+                    assertEquals(1, pointField.<UInt32Type>getField("count").getValue().intValue());
+
+                    pointField = (MessageType)pointFields.get(1);
+                    assertEquals("y", pointField.<StringType>getField("name").getValue());
+
+                    pointField = (MessageType)pointFields.get(2);
+                    assertEquals("z", pointField.<StringType>getField("name").getValue());
+
+                    pointField = (MessageType)pointFields.get(3);
+                    assertEquals("intensity", pointField.<StringType>getField("name").getValue());
+
+                    pointField = (MessageType)pointFields.get(4);
+                    assertEquals("ring", pointField.<StringType>getField("name").getValue());
+                }
+                catch (UninitializedFieldException e) {
+                    return false;
+                }
                 count[0]++;
                 return true;
             }
