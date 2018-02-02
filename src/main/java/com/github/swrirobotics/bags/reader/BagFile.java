@@ -567,6 +567,7 @@ public class BagFile {
      * @param index The index of the message in the topic.
      * @return The message at that position in the bag.
      * @throws BagReaderException If there was an error reading the bag.
+     * @throws ArrayIndexOutOfBoundsException If index is larger than the size of the index.
      */
     public MessageType getMessageOnTopicAtIndex(String topic,
                                                 int index) throws BagReaderException {
@@ -577,7 +578,7 @@ public class BagFile {
             indexes = myMessageIndexesForTopics.get(topic);
         }
 
-        if (index > indexes.size()) {
+        if (index >= indexes.size()) {
             throw new ArrayIndexOutOfBoundsException(index);
         }
 
