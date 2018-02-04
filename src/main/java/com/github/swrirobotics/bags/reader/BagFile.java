@@ -61,6 +61,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import javax.swing.ProgressMonitor;
 
 /**
  * Represents a bag file.  This class contains methods for reading a bag file
@@ -89,23 +90,44 @@ public class BagFile {
 
     private static final Logger myLogger = LoggerFactory.getLogger(BagFile.class);
 
-    private static class MessageIndex implements Comparable<MessageIndex> {
+    /** An index entry for one message */
+    public static class MessageIndex implements Comparable<MessageIndex> {
         public long fileIndex;
         public long chunkIndex;
+        public String topic;
+        public Timestamp timestamp;
 
-        public MessageIndex(long fileIndex, long chunkIndex) {
+        public MessageIndex(long fileIndex, long chunkIndex, String topic, Timestamp timestamp) {
             this.fileIndex = fileIndex;
             this.chunkIndex = chunkIndex;
+            this.topic=topic;
+            this.timestamp=timestamp;
+        }
+
+        /** Returns comparison of Timestamp if it is not null, otherwise by fileIndex / chunkIndex
+         * 
+         * @param o the MessageIndex to compare to
+         * @return result
+         */
+        @Override
+        public int compareTo(MessageIndex o) {
+            if (timestamp == null) {
+                int result = Long.compare(fileIndex, o.fileIndex);
+                if (result != 0) {
+                    return result;
+                } else {
+                    return Long.compare(chunkIndex, o.chunkIndex);
+                }
+            } else {
+                return timestamp.compareTo(o.timestamp);
+            }
         }
 
         @Override
-        public int compareTo(MessageIndex o) {
-            int result = Long.compare(fileIndex, o.fileIndex);
-            if (result == 0) {
-                result = Long.compare(chunkIndex, o.chunkIndex);
-            }
-            return result;
+        public String toString() {
+            return "MessageIndex{" + "fileIndex=" + fileIndex + ", chunkIndex=" + chunkIndex + ", topic=" + topic + ", timestamp=" + timestamp + '}';
         }
+
     }
 
     /**
@@ -421,7 +443,7 @@ public class BagFile {
     /**
      * Returns all of the topics in the bag file.  The list is sorted by name.
      * @return A list of topics in the bag file.
-     * @throws BagReaderException
+     * @throws BagReaderException if there is a problem
      */
     public List<TopicInfo> getTopics() throws BagReaderException {
         Map<String, TopicInfo> topicNameMap = new HashMap<>();
@@ -604,6 +626,46 @@ public class BagFile {
 
         return mt;
     }
+/**
+     * Gets a message at a particular index.
+     *
+     * Messages are sorted in the order they were written to the bag file, which
+     * may not be the same as their chronological order.
+     *
+     * @param indexes the List of MessageIndex created by generateIndexesForTopic or generateIndexesForTopicList
+     * @param index The index of the message in the topic.
+     * @return The message at that position in the bag.
+     * @throws BagReaderException If there was an error reading the bag.
+     * @throws ArrayIndexOutOfBoundsException If index is larger than the size
+     * of the index.
+     */
+    public MessageType getMessageFromIndex(List<MessageIndex> indexes,
+            int index) throws BagReaderException {
+
+        if (index >= indexes.size()) {
+            throw new ArrayIndexOutOfBoundsException(index);
+        }
+        String topic=indexes.get(index).topic;
+        MessageType mt;
+        try {
+            Connection conn = myConnectionsByTopic.get(topic).iterator().next();
+            mt = conn.getMessageCollection().getMessageType();
+        } catch (UnknownMessageException e) {
+            throw new BagReaderException(e);
+        }
+
+        try (FileChannel channel = getChannel()) {
+            MessageIndex msgIndex = indexes.get(index);
+            Record record = BagFile.recordAt(channel, msgIndex.fileIndex);
+            ByteBufferChannel chunkChannel = new ByteBufferChannel(record.getData());
+            Record message = BagFile.recordAt(chunkChannel, msgIndex.chunkIndex);
+            mt.readMessage(message.getData().order(ByteOrder.LITTLE_ENDIAN));
+        } catch (IOException e) {
+            throw new BagReaderException(e);
+        }
+
+        return mt;
+    }
 
     /**
      * Bags are supposed to have Index Data chunks that provided a convenient
@@ -615,8 +677,9 @@ public class BagFile {
      * a message.
      * @param topic The topic to generate indices for.
      * @throws BagReaderException If there was an error reading the bag file.
+     * @return the index, which is sorted according to BagFile.MessageIndex#compareTo
      */
-    private void generateIndexesForTopic(String topic) throws BagReaderException {
+    public List<MessageIndex> generateIndexesForTopic(String topic) throws BagReaderException {
         List<MessageIndex> msgIndexes = Lists.newArrayList();
         try (FileChannel channel = getChannel()) {
             for (Connection conn : myConnectionsByTopic.get(topic)) {
@@ -632,7 +695,8 @@ public class BagFile {
                         msg.readData();
                         if (msg.getHeader().getType() == Record.RecordType.MESSAGE_DATA &&
                             msg.getHeader().getInt("conn") == conn.getConnectionId()) {
-                            msgIndexes.add(new MessageIndex(chunkPos, position));
+                            Timestamp t=msg.getHeader().getTimestamp("time");
+                            msgIndexes.add(new MessageIndex(chunkPos, position, topic,t));
                         }
                     }
                 }
@@ -644,6 +708,57 @@ public class BagFile {
 
         Collections.sort(msgIndexes);
         myMessageIndexesForTopics.put(topic, msgIndexes);
+        return msgIndexes;
+    }
+
+//    ProgressMonitor progressMonitor=null;
+    
+    /**
+     * Bags are supposed to have Index Data chunks that provided a convenient
+     * mechanism for finding the indexes of individual messages within chunks.
+     * In practice, they usually do not have this, so we have to iterate through
+     * chunks in order to find the positions of individual messages.
+     * This method builds up a list of indices for a particular topic and stores
+     * it so that we don't have to look through it every time we want to find
+     * a message.
+     * @param topics The topics to generate indices for.
+     * @throws BagReaderException If there was an error reading the bag file.
+     * @return the index, which is sorted according to BagFile.MessageIndex#compareTo
+     */
+    public List<MessageIndex> generateIndexesForTopicList(List<String> topics) throws BagReaderException {
+        List<MessageIndex> msgIndexes = Lists.newArrayList();
+        try (FileChannel channel = getChannel()) {
+            for (String topic : topics) {
+                myLogger.info("generating index for topic "+topic);
+                List<MessageIndex> msgIndex = Lists.newArrayList();
+                for (Connection conn : myConnectionsByTopic.get(topic)) {
+                    for (ChunkInfo chunkInfo : myChunkInfosByConnectionId.get(conn.getConnectionId())) {
+                        long chunkPos = chunkInfo.getChunkPos();
+
+                        Record chunk = BagFile.recordAt(channel, chunkPos);
+                        chunk.readData();
+                        ByteBufferChannel chunkChannel = new ByteBufferChannel(chunk.getData());
+                        while (chunkChannel.position() < chunkChannel.size()) {
+                            long position = chunkChannel.position();
+                            Record msg = new Record(chunkChannel);
+                            msg.readData();
+                            if (msg.getHeader().getType() == Record.RecordType.MESSAGE_DATA
+                                    && msg.getHeader().getInt("conn") == conn.getConnectionId()) {
+                                Timestamp t=msg.getHeader().getTimestamp("time");
+                                msgIndex.add(new MessageIndex(chunkPos, position, topic,t));
+                            }
+                        }
+                    }
+                }
+                myMessageIndexesForTopics.put(topic, msgIndex);
+                msgIndexes.addAll(msgIndex);
+            }
+        } catch (IOException e) {
+            throw new BagReaderException(e);
+        }
+
+        Collections.sort(msgIndexes); // sort all messages by Timestamp
+        return msgIndexes;
     }
 
     /**
