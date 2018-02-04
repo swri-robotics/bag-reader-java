@@ -57,11 +57,11 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.security.MessageDigest;
 import java.sql.Timestamp;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import javax.swing.ProgressMonitor;
 
 /**
  * Represents a bag file.  This class contains methods for reading a bag file
@@ -731,10 +731,21 @@ public class BagFile {
             for (String topic : topics) {
                 myLogger.info("generating index for topic "+topic);
                 List<MessageIndex> msgIndex = Lists.newArrayList();
-                for (Connection conn : myConnectionsByTopic.get(topic)) {
-                    for (ChunkInfo chunkInfo : myChunkInfosByConnectionId.get(conn.getConnectionId())) {
+                int connNum=0;
+                Collection<Connection> connList=myConnectionsByTopic.get(topic);
+                int numConns=connList.size();
+                for (Connection conn : connList ) {
+                    myLogger.info("\tConnection "+conn+" ("+connNum+"/"+numConns+")");
+                    connNum++;
+                    Collection<ChunkInfo> chunkColl=myChunkInfosByConnectionId.get(conn.getConnectionId());
+                    int chunkNum=0;
+                    int numChunks=chunkColl.size();
+                    for (ChunkInfo chunkInfo : chunkColl) {
                         long chunkPos = chunkInfo.getChunkPos();
-
+                        if(chunkNum%500==0) {
+                            myLogger.info("\t\tChunk "+chunkNum+"/"+numChunks);
+                        }
+                        chunkNum++;
                         Record chunk = BagFile.recordAt(channel, chunkPos);
                         chunk.readData();
                         ByteBufferChannel chunkChannel = new ByteBufferChannel(chunk.getData());
