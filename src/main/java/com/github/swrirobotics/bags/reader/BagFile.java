@@ -731,7 +731,8 @@ public class BagFile {
      * a message.
      * @param topics The topics to generate indices for.
      * @throws BagReaderException If there was an error reading the bag file.
-     * @return the index, which is sorted according to BagFile.MessageIndex#compareTo
+     * @return the index, which is sorted according to Timestamp
+     * @see com.github.swrirobotics.bags.reader.BagFile.MessageIndex#compareTo(com.github.swrirobotics.bags.reader.BagFile.MessageIndex) 
      */
     public List<MessageIndex> generateIndexesForTopicList(List<String> topics) throws BagReaderException {
         List<MessageIndex> msgIndexes = Lists.newArrayList();
