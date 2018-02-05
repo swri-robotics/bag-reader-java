@@ -97,6 +97,13 @@ public class BagFile {
         public String topic;
         public Timestamp timestamp;
 
+        /** Constructs a new MessageIndex
+         * 
+         * @param fileIndex the index in the file
+         * @param chunkIndex the index of the chunk
+         * @param topic the topic of the message (needed for reading it)
+         * @param timestamp the timestamp, if it available, used for sorting the index
+         */
         public MessageIndex(long fileIndex, long chunkIndex, String topic, Timestamp timestamp) {
             this.fileIndex = fileIndex;
             this.chunkIndex = chunkIndex;
@@ -104,7 +111,7 @@ public class BagFile {
             this.timestamp=timestamp;
         }
 
-        /** Returns comparison of Timestamp if it is not null, otherwise by fileIndex / chunkIndex
+        /** Returns comparison of Timestamp if it is not null, otherwise by fileIndex, then chunkIndex
          * 
          * @param o the MessageIndex to compare to
          * @return result
@@ -718,8 +725,9 @@ public class BagFile {
      * mechanism for finding the indexes of individual messages within chunks.
      * In practice, they usually do not have this, so we have to iterate through
      * chunks in order to find the positions of individual messages.
-     * This method builds up a list of indices for a particular topic and stores
-     * it so that we don't have to look through it every time we want to find
+     * This method builds up a list of indices for a list of topics and stores
+     * it in Timestamp order (or fileIndex/chunkIndex order)
+     * so that we don't have to look through it every time we want to find
      * a message.
      * @param topics The topics to generate indices for.
      * @throws BagReaderException If there was an error reading the bag file.
