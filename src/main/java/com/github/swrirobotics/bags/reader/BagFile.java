@@ -62,6 +62,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import javax.swing.ProgressMonitor;
 
 /**
  * Represents a bag file.  This class contains methods for reading a bag file
@@ -729,15 +730,41 @@ public class BagFile {
      * it in Timestamp order (or fileIndex/chunkIndex order)
      * so that we don't have to look through it every time we want to find
      * a message.
+     * <p>
+     * If showProgressMonitor is true, then generating the index is run on a background SwingWorker
+     * thread but the method does not return until the index is generated or the operation is canceled.
+     * If the operation is canceled, a BagReaderException is generated.
+     * 
      * @param topics The topics to generate indices for.
+     * @param progressMonitor if non-null, progressMonitor is called with setProgress updates.
+     * If a caller run the task in a SwingWorker thread that can 
+     * pop up a progress monitor on the root container window if the task takes a long time.
      * @throws BagReaderException If there was an error reading the bag file.
      * @return the index, which is sorted according to Timestamp
      * @see com.github.swrirobotics.bags.reader.BagFile.MessageIndex#compareTo(com.github.swrirobotics.bags.reader.BagFile.MessageIndex) 
      */
-    public List<MessageIndex> generateIndexesForTopicList(List<String> topics) throws BagReaderException {
+    public List<MessageIndex> generateIndexesForTopicList(List<String> topics, ProgressMonitor progressMonitor) throws BagReaderException, InterruptedException {
+        int totalNumChunks = 0, currentTotalChunkNum=0; // used for progressMonitor
+        if (progressMonitor != null) {
+            for (String topic : topics) {
+                Collection<Connection> connList = myConnectionsByTopic.get(topic);
+                for (Connection conn : connList) {
+                    Collection<ChunkInfo> chunkColl = myChunkInfosByConnectionId.get(conn.getConnectionId());
+                    totalNumChunks += chunkColl.size();
+                }
+            }
+            progressMonitor.setMinimum(0);
+            progressMonitor.setMaximum(totalNumChunks);
+            if(progressMonitor.isCanceled()){
+                throw new InterruptedException();
+            }
+        }
         List<MessageIndex> msgIndexes = Lists.newArrayList();
         try (FileChannel channel = getChannel()) {
             for (String topic : topics) {
+                if(progressMonitor!=null) {
+                    progressMonitor.setNote("generating index for topic "+topic);
+                }
                 myLogger.info("generating index for topic "+topic);
                 List<MessageIndex> msgIndex = Lists.newArrayList();
                 int connNum=0;
@@ -755,6 +782,13 @@ public class BagFile {
                             myLogger.info("\t\tChunk "+chunkNum+"/"+numChunks);
                         }
                         chunkNum++;
+                        if(progressMonitor!=null){
+                            if(progressMonitor.isCanceled()) {
+                                progressMonitor.setNote("canceling");
+                                throw new InterruptedException("canceled indexing");
+                            }
+                            progressMonitor.setProgress(currentTotalChunkNum++);
+                        }
                         Record chunk = BagFile.recordAt(channel, chunkPos);
                         chunk.readData();
                         ByteBufferChannel chunkChannel = new ByteBufferChannel(chunk.getData());
@@ -777,7 +811,18 @@ public class BagFile {
             throw new BagReaderException(e);
         }
 
+        myLogger.info("sorting combined index with "+msgIndexes.size()+" messages");
+        if (progressMonitor != null) {
+            if (progressMonitor.isCanceled()) {
+                throw new InterruptedException("canceled sorting index");
+            }
+            progressMonitor.setNote("sorting index");
+            progressMonitor.setProgress(totalNumChunks);
+        }
         Collections.sort(msgIndexes); // sort all messages by Timestamp
+         if(progressMonitor!=null){
+            progressMonitor.setNote("done sorting");
+        }
         return msgIndexes;
     }
 
