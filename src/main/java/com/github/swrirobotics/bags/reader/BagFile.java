@@ -91,7 +91,7 @@ public class BagFile {
 
     private static final Logger myLogger = LoggerFactory.getLogger(BagFile.class);
 
-    /** An index entry for one message */
+    /** An index entry for one message, which includes topic and Timestamp if available */
     public static class MessageIndex implements Comparable<MessageIndex> {
         public long fileIndex;
         public long chunkIndex;
@@ -687,7 +687,7 @@ public class BagFile {
      * @throws BagReaderException If there was an error reading the bag file.
      * @return the index, which is sorted according to BagFile.MessageIndex#compareTo
      */
-    public List<MessageIndex> generateIndexesForTopic(String topic) throws BagReaderException {
+    private List<MessageIndex> generateIndexesForTopic(String topic) throws BagReaderException {
         List<MessageIndex> msgIndexes = Lists.newArrayList();
         try (FileChannel channel = getChannel()) {
             for (Connection conn : myConnectionsByTopic.get(topic)) {
@@ -731,16 +731,18 @@ public class BagFile {
      * so that we don't have to look through it every time we want to find
      * a message.
      * <p>
-     * If showProgressMonitor is true, then generating the index is run on a background SwingWorker
-     * thread but the method does not return until the index is generated or the operation is canceled.
-     * If the operation is canceled, a BagReaderException is generated.
+     * If showProgressMonitor is true, then a caller can run generating the index on a background SwingWorker
+     * thread. The SwingWorker progress is updated and the user can cancel the operation by using the ProgressMonitor Cancel button.
+     * If the operation is canceled, an InterruptedException is generated.
      * 
      * @param topics The topics to generate indices for.
      * @param progressMonitor if non-null, progressMonitor is called with setProgress updates.
      * If a caller run the task in a SwingWorker thread that can 
      * pop up a progress monitor on the root container window if the task takes a long time.
+     * 
      * @throws BagReaderException If there was an error reading the bag file.
      * @return the index, which is sorted according to Timestamp
+     * @throws java.lang.InterruptedException if the operation is canceled via the ProgressMonitor
      * @see com.github.swrirobotics.bags.reader.BagFile.MessageIndex#compareTo(com.github.swrirobotics.bags.reader.BagFile.MessageIndex) 
      */
     public List<MessageIndex> generateIndexesForTopicList(List<String> topics, ProgressMonitor progressMonitor) throws BagReaderException, InterruptedException {
