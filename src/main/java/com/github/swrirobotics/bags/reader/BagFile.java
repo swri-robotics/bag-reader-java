@@ -119,7 +119,7 @@ public class BagFile {
          */
         @Override
         public int compareTo(MessageIndex o) {
-            if (timestamp == null) {
+            if (timestamp == null || o.timestamp==null) {
                 int result = Long.compare(fileIndex, o.fileIndex);
                 if (result != 0) {
                     return result;
