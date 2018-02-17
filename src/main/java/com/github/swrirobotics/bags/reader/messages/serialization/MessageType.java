@@ -57,6 +57,8 @@ public class MessageType implements Field {
     private String myType;
     private String myMd5Sum;
     private String myName = null;
+    /** Set this static boolean true to collect de-serialization statistics (will use a lot of memory for a file with many messages) */
+    public static boolean collectStats=false; // set true to collect timing statistics; uses lots of memory for Hashmaps and creates many weak references
     private MessageCollection myMsgCollection;
 
     private static final Map<String, Map<String, List<Long>>> STATS = Maps.newHashMap();
@@ -289,22 +291,25 @@ public class MessageType implements Field {
      */
     @Override
     public void readMessage(ByteBuffer buffer) {
-        long startTimeNs = System.nanoTime();
+        long startTimeNs = 0;
+        if(collectStats) startTimeNs=System.nanoTime();
         for (Field field : myFields) {
             field.readMessage(buffer);
         }
         long finishTimeNs = System.nanoTime();
-        Map<String, List<Long>> msgTimeStats = STATS.get(myPackage);
-        if (msgTimeStats == null) {
-            msgTimeStats = Maps.newHashMap();
-            STATS.put(myPackage, msgTimeStats);
+        if (collectStats) {
+            Map<String, List<Long>> msgTimeStats = STATS.get(myPackage);
+            if (msgTimeStats == null) {
+                msgTimeStats = Maps.newHashMap();
+                STATS.put(myPackage, msgTimeStats);
+            }
+            List<Long> timeStats = msgTimeStats.get(myType);
+            if (timeStats == null) {
+                timeStats = Lists.newArrayList();
+                msgTimeStats.put(myType, timeStats);
+            }
+            timeStats.add(finishTimeNs - startTimeNs);
         }
-        List<Long> timeStats = msgTimeStats.get(myType);
-        if (timeStats == null) {
-            timeStats = Lists.newArrayList();
-            msgTimeStats.put(myType, timeStats);
-        }
-        timeStats.add(finishTimeNs - startTimeNs);
     }
 
     /**
@@ -495,11 +500,17 @@ public class MessageType implements Field {
     /**
      * In order to analyze deserialization performance, the
      * {@link #readMessage(ByteBuffer)} method collects information about how
-     * long it takes to deserialize different message types.  This will
+     * long it takes to deserialize different message types.  This method will
      * print a list of all of the different types of messages that have been
      * read, how many have been read, and the average time to deserialize them.
+     * To use printStats, set collectStats to true, 
+     * since collecting statistics uses a lot memory that cannot be garbage collected.
      */
     public static void printStats() {
+        if(!collectStats){
+            myLogger.warn("set MessageType.collectStats=true to collect timing statistics");
+            return;
+        }
         myLogger.info("--- Message decoding statistics ---");
         for (Map.Entry<String, Map<String, List<Long>>> pkg : STATS.entrySet()) {
             for (Map.Entry<String, List<Long>> type : pkg.getValue().entrySet()) {

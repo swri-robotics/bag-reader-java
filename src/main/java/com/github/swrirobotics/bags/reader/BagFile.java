@@ -62,6 +62,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import javax.swing.ProgressMonitor;
 
 /**
  * Represents a bag file.  This class contains methods for reading a bag file
@@ -90,7 +91,7 @@ public class BagFile {
 
     private static final Logger myLogger = LoggerFactory.getLogger(BagFile.class);
 
-    /** An index entry for one message */
+    /** An index entry for one message, which includes topic and Timestamp if available */
     public static class MessageIndex implements Comparable<MessageIndex> {
         public long fileIndex;
         public long chunkIndex;
@@ -118,7 +119,7 @@ public class BagFile {
          */
         @Override
         public int compareTo(MessageIndex o) {
-            if (timestamp == null) {
+            if (timestamp == null || o.timestamp==null) {
                 int result = Long.compare(fileIndex, o.fileIndex);
                 if (result != 0) {
                     return result;
@@ -686,7 +687,7 @@ public class BagFile {
      * @throws BagReaderException If there was an error reading the bag file.
      * @return the index, which is sorted according to BagFile.MessageIndex#compareTo
      */
-    public List<MessageIndex> generateIndexesForTopic(String topic) throws BagReaderException {
+    private List<MessageIndex> generateIndexesForTopic(String topic) throws BagReaderException {
         List<MessageIndex> msgIndexes = Lists.newArrayList();
         try (FileChannel channel = getChannel()) {
             for (Connection conn : myConnectionsByTopic.get(topic)) {
@@ -729,15 +730,43 @@ public class BagFile {
      * it in Timestamp order (or fileIndex/chunkIndex order)
      * so that we don't have to look through it every time we want to find
      * a message.
+     * <p>
+     * If showProgressMonitor is true, then a caller can run generating the index on a background SwingWorker
+     * thread. The SwingWorker progress is updated and the user can cancel the operation by using the ProgressMonitor Cancel button.
+     * If the operation is canceled, an InterruptedException is generated.
+     * 
      * @param topics The topics to generate indices for.
+     * @param progressMonitor if non-null, progressMonitor is called with setProgress updates.
+     * If a caller run the task in a SwingWorker thread that can 
+     * pop up a progress monitor on the root container window if the task takes a long time.
+     * 
      * @throws BagReaderException If there was an error reading the bag file.
      * @return the index, which is sorted according to Timestamp
+     * @throws java.lang.InterruptedException if the operation is canceled via the ProgressMonitor
      * @see com.github.swrirobotics.bags.reader.BagFile.MessageIndex#compareTo(com.github.swrirobotics.bags.reader.BagFile.MessageIndex) 
      */
-    public List<MessageIndex> generateIndexesForTopicList(List<String> topics) throws BagReaderException {
+    public List<MessageIndex> generateIndexesForTopicList(List<String> topics, ProgressMonitor progressMonitor) throws BagReaderException, InterruptedException {
+        int totalNumChunks = 0, currentTotalChunkNum=0; // used for progressMonitor
+        if (progressMonitor != null) {
+            for (String topic : topics) {
+                Collection<Connection> connList = myConnectionsByTopic.get(topic);
+                for (Connection conn : connList) {
+                    Collection<ChunkInfo> chunkColl = myChunkInfosByConnectionId.get(conn.getConnectionId());
+                    totalNumChunks += chunkColl.size();
+                }
+            }
+            progressMonitor.setMinimum(0);
+            progressMonitor.setMaximum(totalNumChunks);
+            if(progressMonitor.isCanceled()){
+                throw new InterruptedException();
+            }
+        }
         List<MessageIndex> msgIndexes = Lists.newArrayList();
         try (FileChannel channel = getChannel()) {
             for (String topic : topics) {
+                if(progressMonitor!=null) {
+                    progressMonitor.setNote("generating index for topic "+topic);
+                }
                 myLogger.info("generating index for topic "+topic);
                 List<MessageIndex> msgIndex = Lists.newArrayList();
                 int connNum=0;
@@ -755,6 +784,13 @@ public class BagFile {
                             myLogger.info("\t\tChunk "+chunkNum+"/"+numChunks);
                         }
                         chunkNum++;
+                        if(progressMonitor!=null){
+                            if(progressMonitor.isCanceled()) {
+                                progressMonitor.setNote("canceling");
+                                throw new InterruptedException("canceled indexing");
+                            }
+                            progressMonitor.setProgress(currentTotalChunkNum++);
+                        }
                         Record chunk = BagFile.recordAt(channel, chunkPos);
                         chunk.readData();
                         ByteBufferChannel chunkChannel = new ByteBufferChannel(chunk.getData());
@@ -777,7 +813,18 @@ public class BagFile {
             throw new BagReaderException(e);
         }
 
+        myLogger.info("sorting combined index with "+msgIndexes.size()+" messages");
+        if (progressMonitor != null) {
+            if (progressMonitor.isCanceled()) {
+                throw new InterruptedException("canceled sorting index");
+            }
+            progressMonitor.setNote("sorting index");
+            progressMonitor.setProgress(totalNumChunks);
+        }
         Collections.sort(msgIndexes); // sort all messages by Timestamp
+         if(progressMonitor!=null){
+            progressMonitor.setNote("done sorting");
+        }
         return msgIndexes;
     }
 
