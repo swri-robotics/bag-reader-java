@@ -47,6 +47,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.channels.FileChannel;
@@ -92,7 +93,8 @@ public class BagFile {
     private static final Logger myLogger = LoggerFactory.getLogger(BagFile.class);
 
     /** An index entry for one message, which includes topic and Timestamp if available */
-    public static class MessageIndex implements Comparable<MessageIndex> {
+    public static class MessageIndex implements Comparable<MessageIndex>, Serializable {
+        private static final long serialVersionUID = 0L;
         public long fileIndex;
         public long chunkIndex;
         public String topic;
