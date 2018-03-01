@@ -880,7 +880,7 @@ public class BagFile {
             return new Record(input);
         }
         catch (IOException e) {
-            throw new BagReaderException("Unable to seek to position: " + index);
+            throw new BagReaderException("Unable to seek to position: " + index +"; caught exception "+e);
         }
     }
 
