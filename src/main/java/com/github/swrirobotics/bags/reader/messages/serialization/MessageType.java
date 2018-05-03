@@ -50,6 +50,7 @@ import java.util.regex.Pattern;
 
 /**
  * Parses and deserializes complex ROS message types.
+ *
  * @see <a href="http://wiki.ros.org/msg">http://wiki.ros.org/msg</a>
  */
 public class MessageType implements Field {
@@ -57,10 +58,14 @@ public class MessageType implements Field {
     private String myType;
     private String myMd5Sum;
     private String myName = null;
-    /** Set this static boolean true to collect de-serialization statistics (will use a lot of memory for a file with many messages) */
-    public static boolean collectStats=false; // set true to collect timing statistics; uses lots of memory for Hashmaps and creates many weak references
+
     private MessageCollection myMsgCollection;
 
+    /**
+     * Set this static boolean true to collect de-serialization statistics
+     * (will use a lot of memory for a file with many messages)
+     */
+    private final static boolean COLLECT_STATS = false;
     private static final Map<String, Map<String, List<Long>>> STATS = Maps.newHashMap();
 
     private final List<Field> myFields = Lists.newArrayList();
@@ -80,12 +85,13 @@ public class MessageType implements Field {
 
     /**
      * Parses a message definition to create a new deserializer.
-     * @param definition The definition of a single ROS message.
+     *
+     * @param definition    The definition of a single ROS message.
      * @param msgCollection A collection of other messages that this message
      *                      may depend on.
      * @throws InvalidDefinitionException If the definition cannot be parsed.
-     * @throws UnknownMessageException If this message definition refers to
-     *         another message that is not in the message collection.
+     * @throws UnknownMessageException    If this message definition refers to
+     *                                    another message that is not in the message collection.
      */
     public MessageType(String definition, MessageCollection msgCollection) throws InvalidDefinitionException, UnknownMessageException {
         myMsgCollection = msgCollection;
@@ -158,19 +164,19 @@ public class MessageType implements Field {
     /**
      * Calculates the MD5 Sum for a message definition.  This should be identical
      * to the MD5 Sum calculated by the Python roslib tools.
-     *
+     * <p>
      * The process used to calculate it is described at
      * {@see <a href="http://wiki.ros.org/ROS/Technical%20Overview#Message_serialization_and_msg_MD5_sums">http://wiki.ros.org/ROS/Technical%20Overview#Message_serialization_and_msg_MD5_sums</a>}
      * but... the description is not quite correct! Notably:
      * 1) Only leading and trailing whitespace are removed.  Whitespace within
-     *    a field definition is left intact.
+     * a field definition is left intact.
      * 2) Non-primitive message types are replaced with the md5sum of that
-     *    message type.
+     * message type.
      *
      * @param definition A ROS message definition.
      * @return That message's MD5 hash.
      * @throws UnknownMessageException If the message refers to another message
-     *         type that we don't know about.
+     *                                 type that we don't know about.
      */
     private String calculateMd5Sum(String definition) throws UnknownMessageException {
         List<String> rawLines = LINE_SPLITTER.splitToList(definition);
@@ -266,6 +272,7 @@ public class MessageType implements Field {
      * ensure every individual deserializer is in a clean state.
      * This copies the MessageType's package, type, md5sum, name,
      * and all of its fields.
+     *
      * @return A deep copy of this MessageType.
      */
     public MessageType copy() {
@@ -287,17 +294,20 @@ public class MessageType implements Field {
 
     /**
      * Deserializes a message from a byte buffer.
+     *
      * @param buffer Bytes that can be deserialized into this field.
      */
     @Override
     public void readMessage(ByteBuffer buffer) {
         long startTimeNs = 0;
-        if(collectStats) startTimeNs=System.nanoTime();
+        if (COLLECT_STATS) {
+            startTimeNs = System.nanoTime();
+        }
         for (Field field : myFields) {
             field.readMessage(buffer);
         }
         long finishTimeNs = System.nanoTime();
-        if (collectStats) {
+        if (COLLECT_STATS) {
             Map<String, List<Long>> msgTimeStats = STATS.get(myPackage);
             if (msgTimeStats == null) {
                 msgTimeStats = Maps.newHashMap();
@@ -325,9 +335,10 @@ public class MessageType implements Field {
 
     /**
      * Creates a new deserializer for a field in this message..
-     * @param type The type of field to create; e. g., "gps_common/GPSStatus" or "uint32"
-     * @param name The name of the field, if it is a member within a message.
-     *             May be null for a top-level message.
+     *
+     * @param type       The type of field to create; e. g., "gps_common/GPSStatus" or "uint32"
+     * @param name       The name of the field, if it is a member within a message.
+     *                   May be null for a top-level message.
      * @param defaultVal The value of the field if it is a constant expression.
      *                   Set this to null for non-constant fields.
      * @return A deserializer for a field.
@@ -420,6 +431,7 @@ public class MessageType implements Field {
 
     /**
      * Returns a list containing all of the field names found in this message.
+     *
      * @return
      */
     public List<String> getFieldNames() {
@@ -428,6 +440,7 @@ public class MessageType implements Field {
 
     /**
      * The ROS message type without a package; for example, "String"
+     *
      * @return The ROS message type of the field.
      */
     @Override
@@ -437,6 +450,7 @@ public class MessageType implements Field {
 
     /**
      * The ROS package containing the message definition; for example, "std_msgs"
+     *
      * @return The ROS package containing this message definition.
      */
     public String getPackage() {
@@ -445,6 +459,7 @@ public class MessageType implements Field {
 
     /**
      * The MD5 sum of the ROS message definition; for example, "992ce8a1687cec8c8bd883ec73ca41d1"
+     *
      * @return The md5 sum of the ROS message definition.
      */
     public String getMd5Sum() {
@@ -458,6 +473,7 @@ public class MessageType implements Field {
      * a sensor_msgs/NavSatFix message.
      * If this object represents a top-level message and not an inner
      * field, it will be null.
+     *
      * @return The name of this field if it is inside another message
      * definition or null if it is not.
      */
@@ -473,20 +489,21 @@ public class MessageType implements Field {
 
     /**
      * Gets the value of a field with the given name within this message.
-     *
+     * <p>
      * This will be an instance of one of the classes that implements {@link Field}.
      * It could be one of the following:
      * <ul>
      * <li>It could be another {@link MessageType}, in which case you can
-     *     call {@link #getField(String)} to get its fields.</li>
+     * call {@link #getField(String)} to get its fields.</li>
      * <li>It could be an instance of {@link ArrayType}, in which case you can call
-     *     {@link ArrayType#getFields()} to get the individual fields that represent
-     *     its data.</li>
+     * {@link ArrayType#getFields()} to get the individual fields that represent
+     * its data.</li>
      * <li>It could be an instance of any of the classes that implement {@link PrimitiveType},
-     *     in which case you can cast it and call {@link PrimitiveType#getValue()} to get
-     *     the underlying data.</li>
+     * in which case you can cast it and call {@link PrimitiveType#getValue()} to get
+     * the underlying data.</li>
      * </ul>
-     * @param <T> The type of field that you are expecting.
+     *
+     * @param <T>  The type of field that you are expecting.
      * @param name The name of the field to retrieve.
      * @return An object representing that field.
      * @throws ClassCastException If the set parameter type is not the same as the actual
@@ -494,7 +511,7 @@ public class MessageType implements Field {
      */
     @SuppressWarnings("unchecked")
     public <T extends Field> T getField(String name) {
-        return (T)myFieldNameMap.get(name);
+        return (T) myFieldNameMap.get(name);
     }
 
     /**
@@ -503,12 +520,12 @@ public class MessageType implements Field {
      * long it takes to deserialize different message types.  This method will
      * print a list of all of the different types of messages that have been
      * read, how many have been read, and the average time to deserialize them.
-     * To use printStats, set collectStats to true, 
+     * To use printStats, set COLLECT_STATS to true,
      * since collecting statistics uses a lot memory that cannot be garbage collected.
      */
     public static void printStats() {
-        if(!collectStats){
-            myLogger.warn("set MessageType.collectStats=true to collect timing statistics");
+        if (!COLLECT_STATS) {
+            myLogger.warn("set MessageType.COLLECT_STATS=true to collect timing statistics");
             return;
         }
         myLogger.info("--- Message decoding statistics ---");
@@ -518,11 +535,11 @@ public class MessageType implements Field {
                 for (Long time : type.getValue()) {
                     avgTime += time;
                 }
-                avgTime /= (double)type.getValue().size();
-                myLogger.info( "  Type: " + pkg.getKey() + "/" + type.getKey() +
-                                       " : " + type.getValue().size() +
-                                       " msgs, averaged " + avgTime +
-                                       " ns per msg." );
+                avgTime /= (double) type.getValue().size();
+                myLogger.info("  Type: " + pkg.getKey() + "/" + type.getKey() +
+                                      " : " + type.getValue().size() +
+                                      " msgs, averaged " + avgTime +
+                                      " ns per msg.");
             }
         }
     }
