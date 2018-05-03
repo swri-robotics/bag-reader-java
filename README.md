@@ -18,7 +18,7 @@ Add the following dependency to your Maven pom.xml:
 <dependency>
     <groupId>com.github.swri-robotics</groupId>
     <artifactId>bag-reader-java</artifactId>
-    <version>1.9.0</version>
+    <version>1.10.0</version>
 </dependency>
 ```
 

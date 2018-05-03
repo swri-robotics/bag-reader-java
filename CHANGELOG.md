@@ -1,5 +1,11 @@
 # Java Bag Reader changelog
 
+1.10.0
+
+- Improve memory usage for bag with lots of messages
+- Fix NullPointerException when comparing message indexes
+- Fix ArrayIndexOutOfBoundError when getting messages at certain indexes
+
 1.9.0
 
 - Fix reading arrays of primitive types
