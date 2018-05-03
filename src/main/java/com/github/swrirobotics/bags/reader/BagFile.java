@@ -669,31 +669,33 @@ public class BagFile {
 
         return mt;
     }
-/**
+
+    /**
      * Gets a message at a particular index.
-     *
+     * <p>
      * Messages are sorted in the order they were written to the bag file, which
      * may not be the same as their chronological order.
      *
      * @param indexes the List of MessageIndex created by generateIndexesForTopic or generateIndexesForTopicList
-     * @param index The index of the message in the topic.
+     * @param index   The index of the message in the topic.
      * @return The message at that position in the bag.
-     * @throws BagReaderException If there was an error reading the bag.
+     * @throws BagReaderException             If there was an error reading the bag.
      * @throws ArrayIndexOutOfBoundsException If index is larger than the size
-     * of the index.
+     *                                        of the index.
      */
     public MessageType getMessageFromIndex(List<MessageIndex> indexes,
-            int index) throws BagReaderException {
+                                           int index) throws BagReaderException {
 
         if (index >= indexes.size()) {
             throw new ArrayIndexOutOfBoundsException(index);
         }
-        String topic=indexes.get(index).topic;
+        String topic = indexes.get(index).topic;
         MessageType mt;
         try {
             Connection conn = myConnectionsByTopic.get(topic).iterator().next();
             mt = conn.getMessageCollection().getMessageType();
-        } catch (UnknownMessageException e) {
+        }
+        catch (UnknownMessageException e) {
             throw new BagReaderException(e);
         }
 
@@ -703,7 +705,8 @@ public class BagFile {
             ByteBufferChannel chunkChannel = new ByteBufferChannel(record.getData());
             Record message = BagFile.recordAt(chunkChannel, msgIndex.chunkIndex);
             mt.readMessage(message.getData().order(ByteOrder.LITTLE_ENDIAN));
-        } catch (IOException e) {
+        }
+        catch (IOException e) {
             throw new BagReaderException(e);
         }
 
@@ -722,7 +725,6 @@ public class BagFile {
      * @param topic The topic to generate indices for.
      * @return the index, which is sorted according to BagFile.MessageIndex#compareTo
      * @throws BagReaderException If there was an error reading the bag file.
-     * @return the index, which is sorted according to BagFile.MessageIndex#compareTo
      */
     private List<MessageIndex> generateIndexesForTopic(String topic) throws BagReaderException {
         List<MessageIndex> msgIndexes = Lists.newArrayList();
@@ -915,7 +917,7 @@ public class BagFile {
             return new Record(input);
         }
         catch (IOException e) {
-            throw new BagReaderException("Unable to seek to position: " + index +"; caught exception "+e);
+            throw new BagReaderException("Unable to seek to position: " + index + "; caught exception " + e);
         }
     }
 
