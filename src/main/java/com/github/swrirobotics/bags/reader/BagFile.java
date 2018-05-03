@@ -47,6 +47,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.channels.FileChannel;
@@ -94,7 +95,8 @@ public class BagFile {
     /**
      * An index entry for one message, which includes topic and Timestamp if available
      */
-    public static class MessageIndex implements Comparable<MessageIndex> {
+    public static class MessageIndex implements Comparable<MessageIndex>, Serializable {
+        private static final long serialVersionUID = 0L;
         public long fileIndex;
         public long chunkIndex;
         public String topic;
@@ -123,7 +125,7 @@ public class BagFile {
          */
         @Override
         public int compareTo(MessageIndex o) {
-            if (timestamp == null) {
+            if (timestamp == null || o.timestamp == null) {
                 int result = Long.compare(fileIndex, o.fileIndex);
                 if (result != 0) {
                     return result;
@@ -915,7 +917,7 @@ public class BagFile {
             return new Record(input);
         }
         catch (IOException e) {
-            throw new BagReaderException("Unable to seek to position: " + index);
+            throw new BagReaderException("Unable to seek to position: " + index + "; caught exception " + e);
         }
     }
 
