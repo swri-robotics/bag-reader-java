@@ -711,49 +711,6 @@ public class BagFile {
     }
 
     /**
-     * Gets a message at a particular index.
-     * <p>
-     * Messages are sorted in the order they were written to the bag file, which
-     * may not be the same as their chronological order.
-     *
-     * @param indexes the List of MessageIndex created by generateIndexesForTopic or generateIndexesForTopicList
-     * @param index   The index of the message in the topic.
-     * @return The message at that position in the bag.
-     * @throws BagReaderException             If there was an error reading the bag.
-     * @throws ArrayIndexOutOfBoundsException If index is larger than the size
-     *                                        of the index.
-     */
-    public MessageType getMessageFromIndex(List<MessageIndex> indexes,
-                                           int index) throws BagReaderException {
-
-        if (index >= indexes.size()) {
-            throw new ArrayIndexOutOfBoundsException(index);
-        }
-        String topic = indexes.get(index).topic;
-        MessageType mt;
-        try {
-            Connection conn = myConnectionsByTopic.get(topic).iterator().next();
-            mt = conn.getMessageCollection().getMessageType();
-        }
-        catch (UnknownMessageException e) {
-            throw new BagReaderException(e);
-        }
-
-        try (FileChannel channel = getChannel()) {
-            MessageIndex msgIndex = indexes.get(index);
-            Record record = BagFile.recordAt(channel, msgIndex.fileIndex);
-            ByteBufferChannel chunkChannel = new ByteBufferChannel(record.getData());
-            Record message = BagFile.recordAt(chunkChannel, msgIndex.chunkIndex);
-            mt.readMessage(message.getData().order(ByteOrder.LITTLE_ENDIAN));
-        }
-        catch (IOException e) {
-            throw new BagReaderException(e);
-        }
-
-        return mt;
-    }
-
-    /**
      * Bags are supposed to have Index Data chunks that provided a convenient
      * mechanism for finding the indexes of individual messages within chunks.
      * In practice, they usually do not have this, so we have to iterate through
