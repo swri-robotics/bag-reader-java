@@ -92,7 +92,9 @@ public class BagFile {
 
     private static final Logger myLogger = LoggerFactory.getLogger(BagFile.class);
 
-    /** An index entry for one message, which includes topic and Timestamp if available */
+    /**
+     * An index entry for one message, which includes topic and Timestamp if available
+     */
     public static class MessageIndex implements Comparable<MessageIndex>, Serializable {
         private static final long serialVersionUID = 0L;
         public long fileIndex;
@@ -100,35 +102,39 @@ public class BagFile {
         public String topic;
         public Timestamp timestamp;
 
-        /** Constructs a new MessageIndex
-         * 
-         * @param fileIndex the index in the file
+        /**
+         * Constructs a new MessageIndex
+         *
+         * @param fileIndex  the index in the file
          * @param chunkIndex the index of the chunk
-         * @param topic the topic of the message (needed for reading it)
-         * @param timestamp the timestamp, if it available, used for sorting the index
+         * @param topic      the topic of the message (needed for reading it)
+         * @param timestamp  the timestamp, if it available, used for sorting the index
          */
         public MessageIndex(long fileIndex, long chunkIndex, String topic, Timestamp timestamp) {
             this.fileIndex = fileIndex;
             this.chunkIndex = chunkIndex;
-            this.topic=topic;
-            this.timestamp=timestamp;
+            this.topic = topic;
+            this.timestamp = timestamp;
         }
 
-        /** Returns comparison of Timestamp if it is not null, otherwise by fileIndex, then chunkIndex
-         * 
+        /**
+         * Returns comparison of Timestamp if it is not null, otherwise by fileIndex, then chunkIndex
+         *
          * @param o the MessageIndex to compare to
          * @return result
          */
         @Override
         public int compareTo(MessageIndex o) {
-            if (timestamp == null || o.timestamp==null) {
+            if (timestamp == null || o.timestamp == null) {
                 int result = Long.compare(fileIndex, o.fileIndex);
                 if (result != 0) {
                     return result;
-                } else {
+                }
+                else {
                     return Long.compare(chunkIndex, o.chunkIndex);
                 }
-            } else {
+            }
+            else {
                 return timestamp.compareTo(o.timestamp);
             }
         }
@@ -144,6 +150,7 @@ public class BagFile {
      * Constructs a new BagFile that represents a bag at the given path.
      * If you create a bag file using this constructor, you should then call
      * {@link #read()} to read the bag's data into memory.
+     *
      * @param filePath The path of the file to open.
      */
     public BagFile(String filePath) {
@@ -152,6 +159,7 @@ public class BagFile {
 
     /**
      * Opens a read-only SeekableByteChannel that refers to the underlying bag file.
+     *
      * @return An open SeekableByteChannel.
      * @throws IOException If there is an error opening the file.
      */
@@ -162,6 +170,7 @@ public class BagFile {
     /**
      * Gets the path to the bag file.  This will be the same as the string that
      * was passed to {@link #BagFile(String)}.
+     *
      * @return The path to the bag file.
      */
     public Path getPath() {
@@ -170,6 +179,7 @@ public class BagFile {
 
     /**
      * The version of the bag file.  Currently, this will always be 2.0.
+     *
      * @return 2.0
      */
     public String getVersion() {
@@ -180,6 +190,7 @@ public class BagFile {
      * The amount of time in seconds that the bag file spans.  If the start
      * time and end time could be read, this will be the difference between
      * them; otherwise it will be 0.0.
+     *
      * @return The amount of time in seconds that the bag file spans.
      */
     public double getDurationS() {
@@ -189,6 +200,7 @@ public class BagFile {
     /**
      * The earliest time of any chunk in the bag file.  This may be null if
      * the bag file had no chunks or if none of them had a start time.
+     *
      * @return The bag's start time.
      */
     public Timestamp getStartTime() {
@@ -198,6 +210,7 @@ public class BagFile {
     /**
      * The latest time of any chunk in the bag file.  This may be null if
      * the bag file had no chunks or if none of them had a end time.
+     *
      * @return The bag's end time.
      */
     public Timestamp getEndTime() {
@@ -206,8 +219,9 @@ public class BagFile {
 
     /**
      * The bag's header record.
-     * @see <a href="http://wiki.ros.org/Bags/Format/2.0#Bag_header">http://wiki.ros.org/Bags/Format/2.0#Bag_header</a>
+     *
      * @return The bag's header.
+     * @see <a href="http://wiki.ros.org/Bags/Format/2.0#Bag_header">http://wiki.ros.org/Bags/Format/2.0#Bag_header</a>
      */
     public BagHeader getBagHeader() {
         return myBagHeader;
@@ -215,8 +229,9 @@ public class BagFile {
 
     /**
      * All of the chunks in the bag file.
-     * @see <a href="http://wiki.ros.org/Bags/Format/2.0#Chunk">http://wiki.ros.org/Bags/Format/2.0#Chunk</a>
+     *
      * @return All of the chunks in the bag file.
+     * @see <a href="http://wiki.ros.org/Bags/Format/2.0#Chunk">http://wiki.ros.org/Bags/Format/2.0#Chunk</a>
      */
     public List<Chunk> getChunks() {
         return myChunks;
@@ -224,8 +239,9 @@ public class BagFile {
 
     /**
      * All of the connections in the bag file.
-     * @see <a href="http://wiki.ros.org/Bags/Format/2.0#Connection">http://wiki.ros.org/Bags/Format/2.0#Connection</a>
+     *
      * @return All of the connections in the bag file.
+     * @see <a href="http://wiki.ros.org/Bags/Format/2.0#Connection">http://wiki.ros.org/Bags/Format/2.0#Connection</a>
      */
     public List<Connection> getConnections() {
         return myConnections;
@@ -234,6 +250,7 @@ public class BagFile {
     /**
      * Convenience method for adding a new connection; updates both the internal
      * list and id map.
+     *
      * @param connection The connection to add.
      */
     private void addConnection(Connection connection) {
@@ -252,8 +269,9 @@ public class BagFile {
 
     /**
      * All of the messages in the bag file.
-     * @see <a href="http://wiki.ros.org/Bags/Format/2.0#Message_data">http://wiki.ros.org/Bags/Format/2.0#Message_data</a>
+     *
      * @return All of the messages in the bag file.
+     * @see <a href="http://wiki.ros.org/Bags/Format/2.0#Message_data">http://wiki.ros.org/Bags/Format/2.0#Message_data</a>
      */
     public List<MessageData> getMessages() {
         return myMessages;
@@ -261,8 +279,9 @@ public class BagFile {
 
     /**
      * All of the indexes in the bag file.
-     * @see <a href="http://wiki.ros.org/Bags/Format/2.0#Index_data">http://wiki.ros.org/Bags/Format/2.0#Index_data</a>
+     *
      * @return All of the indexes in the bag file.
+     * @see <a href="http://wiki.ros.org/Bags/Format/2.0#Index_data">http://wiki.ros.org/Bags/Format/2.0#Index_data</a>
      */
     public List<IndexData> getIndexes() {
         return myIndexes;
@@ -270,8 +289,9 @@ public class BagFile {
 
     /**
      * All of the chunk infos in the bag file.
-     * @see <a href="http://wiki.ros.org/Bags/Format/2.0#Chunk_info">http://wiki.ros.org/Bags/Format/2.0#Chunk_info</a>
+     *
      * @return All of the chunk infos in the bag file.
+     * @see <a href="http://wiki.ros.org/Bags/Format/2.0#Chunk_info">http://wiki.ros.org/Bags/Format/2.0#Chunk_info</a>
      */
     public List<ChunkInfo> getChunkInfos() {
         return myChunkInfos;
@@ -282,6 +302,7 @@ public class BagFile {
      * there is no connection of that type, returns null.
      * There is no guarantee of exactly which Connection in the bag file will
      * be returned.
+     *
      * @param msgMd5Sum The MD5 sum of the message type of the connection.
      * @return The first connection of that type, or null if none was found.
      */
@@ -299,8 +320,9 @@ public class BagFile {
      * This is similar to {@link #forMessagesOfType(String, MessageHandler)},
      * except it will only process the messages on the first topic it finds
      * with the correct type.
+     *
      * @param messageType The type of message, e.g. "sensor_msgs/NavSatFix"
-     * @param handler An object that will process that message.
+     * @param handler     An object that will process that message.
      * @throws BagReaderException If there is an error reading the bag.
      */
     public void forFirstTopicWithMessagesOfType(String messageType, MessageHandler handler) throws BagReaderException {
@@ -330,8 +352,9 @@ public class BagFile {
      * to be processed in any particular order.
      * If {@link MessageHandler#process(MessageType, Connection)} return false, it will
      * cease processing immediately.
+     *
      * @param messageType The type of message, e.g. "sensor_msgs/NavSatFix"
-     * @param handler An object that will process that message.
+     * @param handler     An object that will process that message.
      * @throws BagReaderException If there is an error reading the bag.
      */
     public void forMessagesOfType(String messageType, MessageHandler handler) throws BagReaderException {
@@ -358,7 +381,8 @@ public class BagFile {
      * any particular order.
      * If {@link MessageHandler#process(MessageType, Connection)} return false, it will
      * cease processing immediately.
-     * @param topic The topic, e.g. "/localization/gps"
+     *
+     * @param topic   The topic, e.g. "/localization/gps"
      * @param handler An object that will process that message.
      * @throws BagReaderException If there is an error reading the bag.
      */
@@ -379,9 +403,11 @@ public class BagFile {
             }
         }
     }
+
     /**
      * Searches through every connection in the bag for one with the specified
      * message type and returns the first message on that connection.
+     *
      * @param messageType The message type; e.g., "sensor_msgs/NavSatFix"
      * @return The first message found of that type, or null if none were found.
      * @throws BagReaderException If there was an error reading the bag.
@@ -408,6 +434,7 @@ public class BagFile {
      * NOTE: There is no guarantee that this message will be the first one
      * physically located in the bag file or the first one that was recorded
      * chronologically.  It's simply the first one we can find.
+     *
      * @param topic The topic to search for, e.g. "/localization/gps"
      * @return The first message found on that topic, or null if none were found.
      * @throws BagReaderException If there was an error reading the bag.
@@ -434,10 +461,11 @@ public class BagFile {
      * (e. g., "gps_common/GPSFix") and the values will be all of the
      * MD5Sums that were found for messages of that type (e. g.,
      * "3db3d0a7bc53054c67c528af84710b70").
-     *
+     * <p>
      * Yes, a bag file will <i>probably</i> only have a single MD5 for any
      * given message type, but there's nothing stopping it from having
      * different types on different connections....
+     *
      * @return All of the messages in the bag file.
      */
     public Multimap<String, String> getMessageTypes() {
@@ -452,6 +480,7 @@ public class BagFile {
 
     /**
      * Returns all of the topics in the bag file.  The list is sorted by name.
+     *
      * @return A list of topics in the bag file.
      * @throws BagReaderException if there is a problem
      */
@@ -476,8 +505,8 @@ public class BagFile {
                 TopicInfo info = topicConnIdMap.get(index.getConnectionId());
                 if (info == null) {
                     throw new BagReaderException("IndexData referred to a connection ID (" +
-                                                 index.getConnectionId() +
-                                                 ") that was not found in the connection data.");
+                                                         index.getConnectionId() +
+                                                         ") that was not found in the connection data.");
                 }
                 info.addToMessageCount(index.getCount());
             }
@@ -488,8 +517,8 @@ public class BagFile {
                     TopicInfo topic = topicConnIdMap.get(conn.getConnectionId());
                     if (topic == null) {
                         throw new BagReaderException("ChunkInfo referred to a connection ID (" +
-                                                     conn.getConnectionId() +
-                                                     ") that was not found in the connection data.");
+                                                             conn.getConnectionId() +
+                                                             ") that was not found in the connection data.");
                     }
                     topic.addToMessageCount(conn.getMessageCount());
                 }
@@ -508,6 +537,7 @@ public class BagFile {
      * chunks are compressed, this will return "none".
      * This will iterate through all of the Chunk and ChunkInfo records in a
      * bag, so it might be a little slow.
+     *
      * @return The dominant compression type, "bz2" or "lz4", or "none" if there is none.
      */
     public String getCompressionType() {
@@ -528,7 +558,7 @@ public class BagFile {
         // It's possible we may not have actually read any Chunk records, just
         // ChunkInfo records that contain the position of Chunks.  In that
         // case, we have to go look up the chunks and read them.
-        List<Long> chunkPositions = Lists.newArrayListWithExpectedSize(myChunkInfos.size() );
+        List<Long> chunkPositions = Lists.newArrayListWithExpectedSize(myChunkInfos.size());
         for (ChunkInfo info : myChunkInfos) {
             chunkPositions.add(info.getChunkPos());
         }
@@ -544,7 +574,7 @@ public class BagFile {
                 }
             }
         }
-        catch ( IOException | BagReaderException e ) {
+        catch (IOException | BagReaderException e) {
             myLogger.warn("Error reading data chunk", e);
         }
 
@@ -563,6 +593,7 @@ public class BagFile {
      * Counts how many messages are in this bag file.  If this bag file is indexed,
      * it counts how many are listed in the indices; otherwise, it iterates through
      * chunks and connections to count how many are in there.
+     *
      * @return The number of messages in the bag file.
      */
     public long getMessageCount() {
@@ -584,6 +615,7 @@ public class BagFile {
 
     /**
      * Indicates whether this bag file has any indexes.
+     *
      * @return "true" if there are indexes, "false" otherwise.
      */
     public boolean isIndexed() {
@@ -592,13 +624,14 @@ public class BagFile {
 
     /**
      * Gets a message on the given topic at a particular index.
-     *
+     * <p>
      * Messages are sorted in the order they were written to the bag file,
      * which may not be the same as their chronological order.
+     *
      * @param topic The topic to get a message from.
      * @param index The index of the message in the topic.
      * @return The message at that position in the bag.
-     * @throws BagReaderException If there was an error reading the bag.
+     * @throws BagReaderException             If there was an error reading the bag.
      * @throws ArrayIndexOutOfBoundsException If index is larger than the size of the index.
      */
     public MessageType getMessageOnTopicAtIndex(String topic,
@@ -678,6 +711,49 @@ public class BagFile {
     }
 
     /**
+     * Gets a message at a particular index.
+     * <p>
+     * Messages are sorted in the order they were written to the bag file, which
+     * may not be the same as their chronological order.
+     *
+     * @param indexes the List of MessageIndex created by generateIndexesForTopic or generateIndexesForTopicList
+     * @param index   The index of the message in the topic.
+     * @return The message at that position in the bag.
+     * @throws BagReaderException             If there was an error reading the bag.
+     * @throws ArrayIndexOutOfBoundsException If index is larger than the size
+     *                                        of the index.
+     */
+    public MessageType getMessageFromIndex(List<MessageIndex> indexes,
+                                           int index) throws BagReaderException {
+
+        if (index >= indexes.size()) {
+            throw new ArrayIndexOutOfBoundsException(index);
+        }
+        String topic = indexes.get(index).topic;
+        MessageType mt;
+        try {
+            Connection conn = myConnectionsByTopic.get(topic).iterator().next();
+            mt = conn.getMessageCollection().getMessageType();
+        }
+        catch (UnknownMessageException e) {
+            throw new BagReaderException(e);
+        }
+
+        try (FileChannel channel = getChannel()) {
+            MessageIndex msgIndex = indexes.get(index);
+            Record record = BagFile.recordAt(channel, msgIndex.fileIndex);
+            ByteBufferChannel chunkChannel = new ByteBufferChannel(record.getData());
+            Record message = BagFile.recordAt(chunkChannel, msgIndex.chunkIndex);
+            mt.readMessage(message.getData().order(ByteOrder.LITTLE_ENDIAN));
+        }
+        catch (IOException e) {
+            throw new BagReaderException(e);
+        }
+
+        return mt;
+    }
+
+    /**
      * Bags are supposed to have Index Data chunks that provided a convenient
      * mechanism for finding the indexes of individual messages within chunks.
      * In practice, they usually do not have this, so we have to iterate through
@@ -685,7 +761,9 @@ public class BagFile {
      * This method builds up a list of indices for a particular topic and stores
      * it so that we don't have to look through it every time we want to find
      * a message.
+     *
      * @param topic The topic to generate indices for.
+     * @return the index, which is sorted according to BagFile.MessageIndex#compareTo
      * @throws BagReaderException If there was an error reading the bag file.
      * @return the index, which is sorted according to BagFile.MessageIndex#compareTo
      */
@@ -704,9 +782,9 @@ public class BagFile {
                         Record msg = new Record(chunkChannel);
                         msg.readData();
                         if (msg.getHeader().getType() == Record.RecordType.MESSAGE_DATA &&
-                            msg.getHeader().getInt("conn") == conn.getConnectionId()) {
-                            Timestamp t=msg.getHeader().getTimestamp("time");
-                            msgIndexes.add(new MessageIndex(chunkPos, position, topic,t));
+                                msg.getHeader().getInt("conn") == conn.getConnectionId()) {
+                            Timestamp t = msg.getHeader().getTimestamp("time");
+                            msgIndexes.add(new MessageIndex(chunkPos, position, topic, t));
                         }
                     }
                 }
@@ -721,8 +799,6 @@ public class BagFile {
         return msgIndexes;
     }
 
-//    ProgressMonitor progressMonitor=null;
-    
     /**
      * Bags are supposed to have Index Data chunks that provided a convenient
      * mechanism for finding the indexes of individual messages within chunks.
@@ -736,19 +812,18 @@ public class BagFile {
      * If showProgressMonitor is true, then a caller can run generating the index on a background SwingWorker
      * thread. The SwingWorker progress is updated and the user can cancel the operation by using the ProgressMonitor Cancel button.
      * If the operation is canceled, an InterruptedException is generated.
-     * 
-     * @param topics The topics to generate indices for.
+     *
+     * @param topics          The topics to generate indices for.
      * @param progressMonitor if non-null, progressMonitor is called with setProgress updates.
-     * If a caller run the task in a SwingWorker thread that can 
-     * pop up a progress monitor on the root container window if the task takes a long time.
-     * 
-     * @throws BagReaderException If there was an error reading the bag file.
+     *                        If a caller run the task in a SwingWorker thread that can
+     *                        pop up a progress monitor on the root container window if the task takes a long time.
      * @return the index, which is sorted according to Timestamp
+     * @throws BagReaderException             If there was an error reading the bag file.
      * @throws java.lang.InterruptedException if the operation is canceled via the ProgressMonitor
-     * @see com.github.swrirobotics.bags.reader.BagFile.MessageIndex#compareTo(com.github.swrirobotics.bags.reader.BagFile.MessageIndex) 
+     * @see com.github.swrirobotics.bags.reader.BagFile.MessageIndex#compareTo(com.github.swrirobotics.bags.reader.BagFile.MessageIndex)
      */
     public List<MessageIndex> generateIndexesForTopicList(List<String> topics, ProgressMonitor progressMonitor) throws BagReaderException, InterruptedException {
-        int totalNumChunks = 0, currentTotalChunkNum=0; // used for progressMonitor
+        int totalNumChunks = 0, currentTotalChunkNum = 0; // used for progressMonitor
         if (progressMonitor != null) {
             for (String topic : topics) {
                 Collection<Connection> connList = myConnectionsByTopic.get(topic);
@@ -759,35 +834,35 @@ public class BagFile {
             }
             progressMonitor.setMinimum(0);
             progressMonitor.setMaximum(totalNumChunks);
-            if(progressMonitor.isCanceled()){
+            if (progressMonitor.isCanceled()) {
                 throw new InterruptedException();
             }
         }
         List<MessageIndex> msgIndexes = Lists.newArrayList();
         try (FileChannel channel = getChannel()) {
             for (String topic : topics) {
-                if(progressMonitor!=null) {
-                    progressMonitor.setNote("generating index for topic "+topic);
+                if (progressMonitor != null) {
+                    progressMonitor.setNote("generating index for topic " + topic);
                 }
-                myLogger.info("generating index for topic "+topic);
+                myLogger.info("generating index for topic " + topic);
                 List<MessageIndex> msgIndex = Lists.newArrayList();
-                int connNum=0;
-                Collection<Connection> connList=myConnectionsByTopic.get(topic);
-                int numConns=connList.size();
-                for (Connection conn : connList ) {
-                    myLogger.info("\tConnection "+conn+" ("+connNum+"/"+numConns+")");
+                int connNum = 0;
+                Collection<Connection> connList = myConnectionsByTopic.get(topic);
+                int numConns = connList.size();
+                for (Connection conn : connList) {
+                    myLogger.info("\tConnection " + conn + " (" + connNum + "/" + numConns + ")");
                     connNum++;
-                    Collection<ChunkInfo> chunkColl=myChunkInfosByConnectionId.get(conn.getConnectionId());
-                    int chunkNum=0;
-                    int numChunks=chunkColl.size();
+                    Collection<ChunkInfo> chunkColl = myChunkInfosByConnectionId.get(conn.getConnectionId());
+                    int chunkNum = 0;
+                    int numChunks = chunkColl.size();
                     for (ChunkInfo chunkInfo : chunkColl) {
                         long chunkPos = chunkInfo.getChunkPos();
-                        if(chunkNum%500==0) {
-                            myLogger.info("\t\tChunk "+chunkNum+"/"+numChunks);
+                        if (chunkNum % 500 == 0) {
+                            myLogger.info("\t\tChunk " + chunkNum + "/" + numChunks);
                         }
                         chunkNum++;
-                        if(progressMonitor!=null){
-                            if(progressMonitor.isCanceled()) {
+                        if (progressMonitor != null) {
+                            if (progressMonitor.isCanceled()) {
                                 progressMonitor.setNote("canceling");
                                 throw new InterruptedException("canceled indexing");
                             }
@@ -802,8 +877,8 @@ public class BagFile {
                             msg.readData();
                             if (msg.getHeader().getType() == Record.RecordType.MESSAGE_DATA
                                     && msg.getHeader().getInt("conn") == conn.getConnectionId()) {
-                                Timestamp t=msg.getHeader().getTimestamp("time");
-                                msgIndex.add(new MessageIndex(chunkPos, position, topic,t));
+                                Timestamp t = msg.getHeader().getTimestamp("time");
+                                msgIndex.add(new MessageIndex(chunkPos, position, topic, t));
                             }
                         }
                     }
@@ -811,11 +886,12 @@ public class BagFile {
                 myMessageIndexesForTopics.put(topic, msgIndex);
                 msgIndexes.addAll(msgIndex);
             }
-        } catch (IOException e) {
+        }
+        catch (IOException e) {
             throw new BagReaderException(e);
         }
 
-        myLogger.info("sorting combined index with "+msgIndexes.size()+" messages");
+        myLogger.info("sorting combined index with " + msgIndexes.size() + " messages");
         if (progressMonitor != null) {
             if (progressMonitor.isCanceled()) {
                 throw new InterruptedException("canceled sorting index");
@@ -824,7 +900,7 @@ public class BagFile {
             progressMonitor.setProgress(totalNumChunks);
         }
         Collections.sort(msgIndexes); // sort all messages by Timestamp
-         if(progressMonitor!=null){
+        if (progressMonitor != null) {
             progressMonitor.setNote("done sorting");
         }
         return msgIndexes;
@@ -833,6 +909,7 @@ public class BagFile {
     /**
      * Checks whether or not the input channel is open and pointing at the beginning
      * of a V2.0 ROS bag file.  Throws an exception if it's not.
+     *
      * @param myInput A byte channel that should be tested.
      * @throws BagReaderException If the byte channel is not at the beginning of a V2.0 bag file.
      */
@@ -869,6 +946,7 @@ public class BagFile {
     /**
      * Creates a new {@link Record} starting at a particular location in an input stream.
      * After this method is done, the position of the byte channel will be set to index.
+     *
      * @param input The byte channel to get the record from.
      * @param index The index in the byte channel the record starts at.
      * @return A new record from that particular position.
@@ -886,13 +964,13 @@ public class BagFile {
 
     /**
      * Generates a hash that acts as a fingerprint for this bag file.
-     *
+     * <p>
      * Sometimes you'd like to be able to compare two bag files to determine if
      * they're identical.  Doing a byte-for-byte comparison or comparing MD5 sums
      * of bag files can be very slow for large bags.  This method generates a
      * hash that should be about as reliable as an MD5 sum of the entire bag file
      * but is much faster.
-     *
+     * <p>
      * It does so by hashing data found in records throughout the file; it does
      * not compare the actual data inside data chunks.  In practice, this should
      * be good enough to uniquely identify any bag files generated in the real
@@ -923,7 +1001,7 @@ public class BagFile {
         }
 
         for (Connection conn : getConnections()) {
-            if (conn.getCallerId() != null ) {
+            if (conn.getCallerId() != null) {
                 digest.update(conn.getCallerId().getBytes());
             }
             digest.update(Ints.toByteArray(conn.getConnectionId()));
@@ -975,6 +1053,7 @@ public class BagFile {
      * {@link #BagFile(String)}, you must manually call this.
      * This will only read a bag file once.  Successive calls to this method
      * will have no effect.
+     *
      * @throws BagReaderException
      */
     public void read() throws BagReaderException {
@@ -982,7 +1061,7 @@ public class BagFile {
             return;
         }
 
-        try (FileChannel input = getChannel()){
+        try (FileChannel input = getChannel()) {
             verifyBagFile(input);
 
             while (hasNext(input)) {
@@ -1041,33 +1120,33 @@ public class BagFile {
         }
 
         if (this.getStartTime() != null &&
-            this.getEndTime() != null &&
-            this.getStartTime().getTime() != 0 &&
-            this.getEndTime().getTime() != 0) {
+                this.getEndTime() != null &&
+                this.getStartTime().getTime() != 0 &&
+                this.getEndTime().getTime() != 0) {
             this.myDurationS = ((double) (this.getEndTime().getTime() - this.getStartTime().getTime())) / 1000.0;
         }
         else {
             myLogger.warn("No chunk info records found; start and end time are unknown.");
 
             myLogger.warn("Record type counts:" +
-                         "\n  Header: " + (this.getBagHeader() == null ? 0 : 1) +
-                         "\n  Chunk: " + this.getChunks().size() +
-                         "\n  Connection: " + this.getConnections().size() +
-                         "\n  Message Data: " + this.getMessages().size() +
-                         "\n  Index Data: " + this.getIndexes().size() +
-                         "\n  Chunk Info: " +  this.getChunkInfos().size());
+                                  "\n  Header: " + (this.getBagHeader() == null ? 0 : 1) +
+                                  "\n  Chunk: " + this.getChunks().size() +
+                                  "\n  Connection: " + this.getConnections().size() +
+                                  "\n  Message Data: " + this.getMessages().size() +
+                                  "\n  Index Data: " + this.getIndexes().size() +
+                                  "\n  Chunk Info: " + this.getChunkInfos().size());
         }
 
         if (this.getBagHeader().getChunkCount() !=
                 (this.getChunks().size() + this.getChunkInfos().size()) ||
-            this.getBagHeader().getConnCount() != this.getConnections().size()) {
+                this.getBagHeader().getConnCount() != this.getConnections().size()) {
             String errorMsg = "Expected " + this.getBagHeader().getChunkCount() +
-                              " chunks and " + this.getBagHeader().getConnCount() +
-                              " connections, but got " +
-                              (this.getChunks().size() + this.getChunkInfos().size()) + " and " +
-                              this.getConnections().size() + ".  This is ok if the file " +
-                              "is in the middle of being written to disk, otherwise the bag " +
-                              "may be corrupt.";
+                    " chunks and " + this.getBagHeader().getConnCount() +
+                    " connections, but got " +
+                    (this.getChunks().size() + this.getChunkInfos().size()) + " and " +
+                    this.getConnections().size() + ".  This is ok if the file " +
+                    "is in the middle of being written to disk, otherwise the bag " +
+                    "may be corrupt.";
             myLogger.warn(errorMsg);
             throw new BagReaderException(errorMsg);
         }
@@ -1076,7 +1155,8 @@ public class BagFile {
     /**
      * Compares two timestamps and returns the smallest value.  If one value is
      * null, it will return the other value.
-     * @param left First timestamp to compare.
+     *
+     * @param left  First timestamp to compare.
      * @param right Second timestamp to compare.
      * @return The smallest value.
      */
@@ -1096,7 +1176,8 @@ public class BagFile {
     /**
      * Compares two timestamps and returns the largest value.  If one value is
      * null, it will return the other value.
-     * @param left First timestamp to compare.
+     *
+     * @param left  First timestamp to compare.
      * @param right Second timestamp to compare.
      * @return The largest value.
      */
@@ -1130,7 +1211,7 @@ public class BagFile {
         myLogger.info("End:         " + (this.getEndTime() == null ?
                 "Unknown" : (this.getEndTime().toString() + " (" + this.getEndTime().getTime() + ")")));
         myLogger.info("Size:        " +
-                            (((double) this.getPath().toFile().length()) / 1024.0) + " MB");
+                              (((double) this.getPath().toFile().length()) / 1024.0) + " MB");
         myLogger.info("Messages:    " + this.getMessageCount());
         myLogger.info("Types:");
         for (Map.Entry<String, String> entry : this.getMessageTypes().entries()) {
@@ -1139,8 +1220,8 @@ public class BagFile {
         myLogger.info("Topics:");
         for (TopicInfo topic : this.getTopics()) {
             myLogger.info("  " + topic.getName() + " \t\t" + topic.getMessageCount() +
-                                " msgs \t: " + topic.getMessageType() + " \t" +
-                                (topic.getConnectionCount() > 1 ? ("(" + topic.getConnectionCount() + " connections)") : ""));
+                                  " msgs \t: " + topic.getMessageType() + " \t" +
+                                  (topic.getConnectionCount() > 1 ? ("(" + topic.getConnectionCount() + " connections)") : ""));
         }
     }
 }
