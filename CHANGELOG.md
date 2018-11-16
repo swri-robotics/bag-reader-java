@@ -1,5 +1,9 @@
 # Java Bag Reader changelog
 
+1.11.0
+
+- Upgrade dependencies with security vulnerabilities
+
 1.10.0
 
 - Improve memory usage for bag with lots of messages
