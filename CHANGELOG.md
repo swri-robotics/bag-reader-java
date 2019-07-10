@@ -1,5 +1,9 @@
 # Java Bag Reader changelog
 
+1.10.2
+
+- Upgrade dependencies with security vulnerabilities
+
 1.10.1
 
 - Upgrade dependencies with security vulnerabilities
