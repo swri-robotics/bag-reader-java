@@ -42,7 +42,7 @@ public class BoolType extends PrimitiveType<Boolean> {
         if (myValue != null) {
             return;
         }
-        myValue =  buffer.get() == 0;
+        myValue =  buffer.get() != 0;
     }
 
     @Override
