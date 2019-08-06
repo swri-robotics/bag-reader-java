@@ -32,6 +32,8 @@ package com.github.swrirobotics.bags.reader.messages.serialization;
 
 import com.github.swrirobotics.bags.reader.exceptions.UninitializedFieldException;
 
+import java.lang.reflect.InvocationTargetException;
+
 import java.nio.ByteBuffer;
 
 /**
@@ -109,9 +111,9 @@ public abstract class PrimitiveType<T> implements Field {
     public Field copy() {
         PrimitiveType<T> newType;
         try {
-            newType = this.getClass().newInstance();
+            newType = this.getClass().getDeclaredConstructor().newInstance();
         }
-        catch (InstantiationException | IllegalAccessException e) {
+        catch (InstantiationException | IllegalAccessException | NoSuchMethodException | InvocationTargetException e) {
             // This should never happen, so there's no need to explicitly
             // throw an exception, but just in case it does...
             throw new RuntimeException(e);
