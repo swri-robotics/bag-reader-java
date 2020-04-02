@@ -40,10 +40,40 @@ import java.io.File;
 import java.math.BigInteger;
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 public class TestBagFile {
+    @Test
+    public void testBool() throws BagReaderException {
+        File file = new File("src/test/resources/Bool.bag");
+        BagFile bag = new BagFile(file.getPath());
+        final int[] count = {0};
+        bag.read();
+        bag.forMessagesOnTopic("/false_value", (message, connection) -> {
+            BoolType data = message.getField("data");
+            try {
+                assertFalse(data.getValue());
+            }
+            catch (UninitializedFieldException e) {
+                fail();
+            }
+            count[0]++;
+            return true;
+        });
+        bag.forMessagesOnTopic("/true_value", (message, connection) -> {
+            BoolType data = message.getField("data");
+            try {
+                assertTrue(data.getValue());
+            }
+            catch (UninitializedFieldException e) {
+                fail();
+            }
+            count[0]++;
+            return true;
+        });
+        assertEquals(2, count[0]);
+    }
+
     @Test
     public void testInt8() throws BagReaderException {
         File file = new File("src/test/resources/Int8.bag");
