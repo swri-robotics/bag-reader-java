@@ -1,5 +1,10 @@
 # Java Bag Reader changelog
 
+1.10.3
+
+- Fix issue with boolean values being flipped
+- Upgrade dependencies with security vulnerabilities
+
 1.10.2
 
 - Upgrade dependencies with security vulnerabilities
