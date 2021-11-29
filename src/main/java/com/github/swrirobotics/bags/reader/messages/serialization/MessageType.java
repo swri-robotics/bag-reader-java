@@ -17,12 +17,12 @@
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 // AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 // IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-// ARE DISCLAIMED. IN NO EVENT SHALL Southwest Research Institute® BE LIABLE 
-// FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
-// DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR 
-// SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER 
-// CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT 
-// LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY 
+// ARE DISCLAIMED. IN NO EVENT SHALL Southwest Research Institute® BE LIABLE
+// FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+// DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+// SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+// CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+// LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
 // OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
 // DAMAGE.
 //
@@ -30,8 +30,11 @@
 
 package com.github.swrirobotics.bags.reader.messages.serialization;
 
+import com.github.swrirobotics.bags.reader.exceptions.BagReaderException;
 import com.github.swrirobotics.bags.reader.exceptions.InvalidDefinitionException;
 import com.github.swrirobotics.bags.reader.exceptions.UnknownMessageException;
+import com.github.swrirobotics.bags.reader.records.MessageData;
+import com.github.swrirobotics.bags.reader.records.Record;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
@@ -40,6 +43,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Iterator;
@@ -57,6 +61,7 @@ public class MessageType implements Field {
     private String myPackage;
     private String myType;
     private String myMd5Sum;
+    private MessageData myMsgData = null;
     private String myName = null;
 
     private MessageCollection myMsgCollection;
@@ -254,7 +259,7 @@ public class MessageType implements Field {
             byte[] md5sum = MessageDigest.getInstance("MD5").digest(filteredText.getBytes());
             StringBuilder builder = new StringBuilder();
             for (byte b : md5sum) {
-                builder.append(Integer.toHexString((b & 0xFF) | 0x100).substring(1, 3));
+                builder.append(Integer.toHexString((b & 0xFF) | 0x100), 1, 3);
             }
 
             return builder.toString();
@@ -281,6 +286,7 @@ public class MessageType implements Field {
         mt.myType = myType;
         mt.myMd5Sum = myMd5Sum;
         mt.myMsgCollection = myMsgCollection;
+        mt.myMsgData = myMsgData;
         mt.myName = myName;
 
         for (Field field : myFields) {
@@ -290,6 +296,16 @@ public class MessageType implements Field {
         }
 
         return mt;
+    }
+
+    /**
+     * Reads the message out of a record and stores its header and fields in this object.
+     * @param record The Record to read.
+     * @throws BagReaderException If there was an error reading that record.
+     */
+    public void readMessage(Record record) throws BagReaderException {
+        this.myMsgData = new MessageData(record);
+        this.readMessage(record.getData().order(ByteOrder.LITTLE_ENDIAN));
     }
 
     /**
@@ -308,16 +324,8 @@ public class MessageType implements Field {
         }
         long finishTimeNs = System.nanoTime();
         if (COLLECT_STATS) {
-            Map<String, List<Long>> msgTimeStats = STATS.get(myPackage);
-            if (msgTimeStats == null) {
-                msgTimeStats = Maps.newHashMap();
-                STATS.put(myPackage, msgTimeStats);
-            }
-            List<Long> timeStats = msgTimeStats.get(myType);
-            if (timeStats == null) {
-                timeStats = Lists.newArrayList();
-                msgTimeStats.put(myType, timeStats);
-            }
+            Map<String, List<Long>> msgTimeStats = STATS.computeIfAbsent(myPackage, k -> Maps.newHashMap());
+            List<Long> timeStats = msgTimeStats.computeIfAbsent(myType, k -> Lists.newArrayList());
             timeStats.add(finishTimeNs - startTimeNs);
         }
     }
@@ -353,7 +361,7 @@ public class MessageType implements Field {
         if (isArray) {
             baseType = m.group(1);
             if (!m.group(2).isEmpty()) {
-                arraySize = Integer.valueOf(m.group(2));
+                arraySize = Integer.parseInt(m.group(2));
             }
         }
         else {
@@ -467,6 +475,17 @@ public class MessageType implements Field {
     }
 
     /**
+     * Gets the MessageData header for the most recently read message record.  If this MessageType object
+     * has not yet read a message record, or if the most recently read record was not a message (that
+     * shouldn't happen), this will be null.
+     *
+     * @return The MessageData associated with the most recently read message.
+     */
+    public MessageData getMessageData() {
+        return myMsgData;
+    }
+
+    /**
      * If this is a field within another ROS message, this will be the
      * name of the field. For example, this will be "status" if this
      * object represents the sensor_msgs/NavSatStatus field that is inside
@@ -535,7 +554,7 @@ public class MessageType implements Field {
                 for (Long time : type.getValue()) {
                     avgTime += time;
                 }
-                avgTime /= (double) type.getValue().size();
+                avgTime /= type.getValue().size();
                 myLogger.info("  Type: " + pkg.getKey() + "/" + type.getKey() +
                                       " : " + type.getValue().size() +
                                       " msgs, averaged " + avgTime +

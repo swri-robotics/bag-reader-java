@@ -17,12 +17,12 @@
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 // AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 // IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-// ARE DISCLAIMED. IN NO EVENT SHALL Southwest Research Institute® BE LIABLE 
-// FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
-// DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR 
-// SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER 
-// CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT 
-// LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY 
+// ARE DISCLAIMED. IN NO EVENT SHALL Southwest Research Institute® BE LIABLE
+// FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+// DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+// SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+// CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+// LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
 // OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
 // DAMAGE.
 //
@@ -163,8 +163,8 @@ public class Header {
      */
     private static class Field {
         private final int myLength;
-        private String myName;
-        private byte[] myValue;
+        private final String myName;
+        private final byte[] myValue;
 
         private boolean myGotInt = false;
         private int myIntValue = 0;
@@ -186,7 +186,7 @@ public class Header {
                                              " bytes).  Bag file may need to be reindexed.");
             }
             else {
-                byte fieldData[] = new byte[myLength];
+                byte[] fieldData = new byte[myLength];
                 buffer.get(fieldData);
                 fieldData = ByteBuffer.wrap(fieldData).order(ByteOrder.LITTLE_ENDIAN).array();
 
@@ -267,7 +267,7 @@ public class Header {
         public Timestamp getTimestamp() {
             if (myTimestampValue == null) {
                 ByteBuffer buffer = ByteBuffer.wrap(myValue).order(ByteOrder.LITTLE_ENDIAN);
-                long secs = (long) buffer.getInt();
+                long secs = buffer.getInt();
                 int nsecs = buffer.getInt();
                 myTimestampValue = new Timestamp(secs * 1000L);
                 myTimestampValue.setNanos(nsecs);

@@ -1,6 +1,6 @@
 # Java Bag Reader   [![Build Status](https://travis-ci.org/swri-robotics/bag-reader-java.svg?branch=master)](https://travis-ci.org/swri-robotics/bag-reader-java)
 
-This is a Java library intended for reading information from and deserializing [ROS Bag Files](http://wiki.ros.org/Bags).
+This is a Java library intended for reading information from and deserializing [ROS 1 Bag Files](http://wiki.ros.org/Bags).
 
 It is capable of reading [Version 2.0](http://wiki.ros.org/Bags/Format/2.0) bag files and does not require ROS or any other non-Java library to be installed.
 
@@ -18,7 +18,7 @@ Add the following dependency to your Maven pom.xml:
 <dependency>
     <groupId>com.github.swri-robotics</groupId>
     <artifactId>bag-reader-java</artifactId>
-    <version>1.10.3</version>
+    <version>1.11.0</version>
 </dependency>
 ```
 

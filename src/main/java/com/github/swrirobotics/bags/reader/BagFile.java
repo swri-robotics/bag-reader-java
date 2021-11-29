@@ -17,12 +17,12 @@
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 // AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 // IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-// ARE DISCLAIMED. IN NO EVENT SHALL Southwest Research Institute® BE LIABLE 
-// FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
-// DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR 
-// SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER 
-// CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT 
-// LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY 
+// ARE DISCLAIMED. IN NO EVENT SHALL Southwest Research Institute® BE LIABLE
+// FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+// DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+// SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+// CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+// LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
 // OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
 // DAMAGE.
 //
@@ -163,7 +163,7 @@ public class BagFile {
      * @return An open SeekableByteChannel.
      * @throws IOException If there is an error opening the file.
      */
-    public FileChannel getChannel() throws IOException {
+    public SeekableByteChannel getChannel() throws IOException {
         return FileChannel.open(getPath(), StandardOpenOption.READ);
     }
 
@@ -327,7 +327,7 @@ public class BagFile {
      */
     public void forFirstTopicWithMessagesOfType(String messageType, MessageHandler handler) throws BagReaderException {
         for (Connection conn : myConnectionsByType.get(messageType)) {
-            try (FileChannel channel = getChannel()) {
+            try (SeekableByteChannel channel = getChannel()) {
                 MsgIterator iter = new MsgIterator(myChunkInfos, conn, channel);
 
                 while (iter.hasNext()) {
@@ -359,19 +359,7 @@ public class BagFile {
      */
     public void forMessagesOfType(String messageType, MessageHandler handler) throws BagReaderException {
         for (Connection conn : myConnectionsByType.get(messageType)) {
-            try (FileChannel channel = getChannel()) {
-                MsgIterator iter = new MsgIterator(myChunkInfos, conn, channel);
-
-                while (iter.hasNext()) {
-                    boolean keepWorking = handler.process(iter.next(), conn);
-                    if (!keepWorking) {
-                        return;
-                    }
-                }
-            }
-            catch (IOException e) {
-                throw new BagReaderException(e);
-            }
+            forMessagesOnConnection(conn, handler);
         }
     }
 
@@ -388,19 +376,29 @@ public class BagFile {
      */
     public void forMessagesOnTopic(String topic, MessageHandler handler) throws BagReaderException {
         for (Connection conn : myConnectionsByTopic.get(topic)) {
-            try (FileChannel channel = getChannel()) {
-                MsgIterator iter = new MsgIterator(myChunkInfos, conn, channel);
+            forMessagesOnConnection(conn, handler);
+        }
+    }
 
-                while (iter.hasNext()) {
-                    boolean keepWorking = handler.process(iter.next(), conn);
-                    if (!keepWorking) {
-                        return;
-                    }
+    /**
+     * Iterates through every message published on a given connection and passes it to the handler object.
+     * @param conn The connection.
+     * @param handler An object that will process that message.
+     * @throws BagReaderException If there is an error reading the bag.
+     */
+    public void forMessagesOnConnection(Connection conn, MessageHandler handler) throws BagReaderException {
+        try (SeekableByteChannel channel = getChannel()) {
+            MsgIterator iter = new MsgIterator(myChunkInfos, conn, channel);
+
+            while (iter.hasNext()) {
+                boolean keepWorking = handler.process(iter.next(), conn);
+                if (!keepWorking) {
+                    return;
                 }
             }
-            catch (IOException e) {
-                throw new BagReaderException(e);
-            }
+        }
+        catch (IOException e) {
+            throw new BagReaderException(e);
         }
     }
 
@@ -414,14 +412,9 @@ public class BagFile {
      */
     public MessageType getFirstMessageOfType(String messageType) throws BagReaderException {
         for (Connection conn : myConnectionsByType.get(messageType)) {
-            try (FileChannel channel = getChannel()) {
-                MsgIterator iter = new MsgIterator(myChunkInfos, conn, channel);
-                if (iter.hasNext()) {
-                    return iter.next();
-                }
-            }
-            catch (IOException e) {
-                throw new BagReaderException(e);
+            MessageType msg = getFirstMessageOnConnection(conn);
+            if (msg != null) {
+                return msg;
             }
         }
 
@@ -441,15 +434,30 @@ public class BagFile {
      */
     public MessageType getFirstMessageOnTopic(String topic) throws BagReaderException {
         for (Connection conn : myConnectionsByTopic.get(topic)) {
-            try (FileChannel channel = getChannel()) {
-                MsgIterator iter = new MsgIterator(myChunkInfos, conn, channel);
-                if (iter.hasNext()) {
-                    return iter.next();
-                }
+            MessageType msg = getFirstMessageOnConnection(conn);
+            if (msg != null) {
+                return msg;
             }
-            catch (IOException e) {
-                throw new BagReaderException(e);
+        }
+
+        return null;
+    }
+
+    /**
+     * Gets the first message on the given connection.  Returns null if there are no messages.
+     * @param conn The connection.
+     * @return The first message on the connection or null if there are none.
+     * @throws BagReaderException If there was an error reading the bag.
+     */
+    public MessageType getFirstMessageOnConnection(Connection conn) throws BagReaderException {
+        try (SeekableByteChannel channel = getChannel()) {
+            MsgIterator iter = new MsgIterator(myChunkInfos, conn, channel);
+            if (iter.hasNext()) {
+                return iter.next();
             }
+        }
+        catch (IOException e) {
+            throw new BagReaderException(e);
         }
 
         return null;
@@ -562,7 +570,7 @@ public class BagFile {
         for (ChunkInfo info : myChunkInfos) {
             chunkPositions.add(info.getChunkPos());
         }
-        try (FileChannel channel = getChannel()) {
+        try (SeekableByteChannel channel = getChannel()) {
             for (Long chunkPos : chunkPositions) {
                 Chunk chunk = new Chunk(recordAt(channel, chunkPos));
                 String compression = chunk.getCompression();
@@ -639,14 +647,17 @@ public class BagFile {
         topic = topic.trim();
         List<MessageIndex> indexes = myMessageIndexesForTopics.get(topic);
         if (indexes == null) {
-            generateIndexesForTopic(topic);
-            indexes = myMessageIndexesForTopics.get(topic);
+            indexes = generateIndexesForTopic(topic);
         }
 
         if (index >= indexes.size()) {
             throw new ArrayIndexOutOfBoundsException(index);
         }
 
+        return getMessageType(topic, index, indexes);
+    }
+
+    private MessageType getMessageType(String topic, int index, List<MessageIndex> indexes) throws BagReaderException {
         MessageType mt;
         try {
             Connection conn = myConnectionsByTopic.get(topic).iterator().next();
@@ -656,12 +667,12 @@ public class BagFile {
             throw new BagReaderException(e);
         }
 
-        try (FileChannel channel = getChannel()) {
+        try (SeekableByteChannel channel = getChannel()) {
             MessageIndex msgIndex = indexes.get(index);
             Record record = BagFile.recordAt(channel, msgIndex.fileIndex);
             ByteBufferChannel chunkChannel = new ByteBufferChannel(record.getData());
             Record message = BagFile.recordAt(chunkChannel, msgIndex.chunkIndex);
-            mt.readMessage(message.getData().order(ByteOrder.LITTLE_ENDIAN));
+            mt.readMessage(message);
         }
         catch (IOException e) {
             throw new BagReaderException(e);
@@ -690,27 +701,7 @@ public class BagFile {
             throw new ArrayIndexOutOfBoundsException(index);
         }
         String topic = indexes.get(index).topic;
-        MessageType mt;
-        try {
-            Connection conn = myConnectionsByTopic.get(topic).iterator().next();
-            mt = conn.getMessageCollection().getMessageType();
-        }
-        catch (UnknownMessageException e) {
-            throw new BagReaderException(e);
-        }
-
-        try (FileChannel channel = getChannel()) {
-            MessageIndex msgIndex = indexes.get(index);
-            Record record = BagFile.recordAt(channel, msgIndex.fileIndex);
-            ByteBufferChannel chunkChannel = new ByteBufferChannel(record.getData());
-            Record message = BagFile.recordAt(chunkChannel, msgIndex.chunkIndex);
-            mt.readMessage(message.getData().order(ByteOrder.LITTLE_ENDIAN));
-        }
-        catch (IOException e) {
-            throw new BagReaderException(e);
-        }
-
-        return mt;
+        return getMessageType(topic, index, indexes);
     }
 
     /**
@@ -721,6 +712,8 @@ public class BagFile {
      * This method builds up a list of indices for a particular topic and stores
      * it so that we don't have to look through it every time we want to find
      * a message.
+     * After this message is called, indexes for the topic will be stored in
+     * myMessageIndexesForTopics.
      *
      * @param topic The topic to generate indices for.
      * @return the index, which is sorted according to BagFile.MessageIndex#compareTo
@@ -728,24 +721,11 @@ public class BagFile {
      */
     private List<MessageIndex> generateIndexesForTopic(String topic) throws BagReaderException {
         List<MessageIndex> msgIndexes = Lists.newArrayList();
-        try (FileChannel channel = getChannel()) {
+        try (SeekableByteChannel channel = getChannel()) {
             for (Connection conn : myConnectionsByTopic.get(topic)) {
                 for (ChunkInfo chunkInfo : myChunkInfosByConnectionId.get(conn.getConnectionId())) {
                     long chunkPos = chunkInfo.getChunkPos();
-
-                    Record chunk = BagFile.recordAt(channel, chunkPos);
-                    chunk.readData();
-                    ByteBufferChannel chunkChannel = new ByteBufferChannel(chunk.getData());
-                    while (chunkChannel.position() < chunkChannel.size()) {
-                        long position = chunkChannel.position();
-                        Record msg = new Record(chunkChannel);
-                        msg.readData();
-                        if (msg.getHeader().getType() == Record.RecordType.MESSAGE_DATA &&
-                                msg.getHeader().getInt("conn") == conn.getConnectionId()) {
-                            Timestamp t = msg.getHeader().getTimestamp("time");
-                            msgIndexes.add(new MessageIndex(chunkPos, position, topic, t));
-                        }
-                    }
+                    getIndexesForChunk(channel, topic, msgIndexes, conn, chunkPos);
                 }
             }
         }
@@ -798,7 +778,7 @@ public class BagFile {
             }
         }
         List<MessageIndex> msgIndexes = Lists.newArrayList();
-        try (FileChannel channel = getChannel()) {
+        try (SeekableByteChannel channel = getChannel()) {
             for (String topic : topics) {
                 if (progressMonitor != null) {
                     progressMonitor.setNote("generating index for topic " + topic);
@@ -827,19 +807,7 @@ public class BagFile {
                             }
                             progressMonitor.setProgress(currentTotalChunkNum++);
                         }
-                        Record chunk = BagFile.recordAt(channel, chunkPos);
-                        chunk.readData();
-                        ByteBufferChannel chunkChannel = new ByteBufferChannel(chunk.getData());
-                        while (chunkChannel.position() < chunkChannel.size()) {
-                            long position = chunkChannel.position();
-                            Record msg = new Record(chunkChannel);
-                            msg.readData();
-                            if (msg.getHeader().getType() == Record.RecordType.MESSAGE_DATA
-                                    && msg.getHeader().getInt("conn") == conn.getConnectionId()) {
-                                Timestamp t = msg.getHeader().getTimestamp("time");
-                                msgIndex.add(new MessageIndex(chunkPos, position, topic, t));
-                            }
-                        }
+                        getIndexesForChunk(channel, topic, msgIndex, conn, chunkPos);
                     }
                 }
                 myMessageIndexesForTopics.put(topic, msgIndex);
@@ -863,6 +831,35 @@ public class BagFile {
             progressMonitor.setNote("done sorting");
         }
         return msgIndexes;
+    }
+
+    /**
+     * Opens the chunk at the specified position, generates indexes for the records at that chunk, and adds
+     * them to the provided list.
+     * @param channel An open channel representing a bag file.
+     * @param topic The topic that this chunk is for.
+     * @param msgIndex A list of message indexes; new indexes will be appended here.
+     * @param conn The connection that we're indexing.
+     * @param chunkPos The position of the chunk in the bag file.
+     * @throws BagReaderException If there was an error reading the bag file.
+     * @throws IOException Other errors reading the bag file.
+     */
+    private void getIndexesForChunk(SeekableByteChannel channel, String topic,
+                                    List<MessageIndex> msgIndex, Connection conn,
+                                    long chunkPos) throws BagReaderException, IOException {
+        Record chunk = BagFile.recordAt(channel, chunkPos);
+        chunk.readData();
+        ByteBufferChannel chunkChannel = new ByteBufferChannel(chunk.getData());
+        while (chunkChannel.position() < chunkChannel.size()) {
+            long position = chunkChannel.position();
+            Record msg = new Record(chunkChannel);
+            msg.readData();
+            if (msg.getHeader().getType() == Record.RecordType.MESSAGE_DATA
+                    && msg.getHeader().getInt("conn") == conn.getConnectionId()) {
+                Timestamp t = msg.getHeader().getTimestamp("time");
+                msgIndex.add(new MessageIndex(chunkPos, position, topic, t));
+            }
+        }
     }
 
     /**
@@ -909,7 +906,7 @@ public class BagFile {
      * @param input The byte channel to get the record from.
      * @param index The index in the byte channel the record starts at.
      * @return A new record from that particular position.
-     * @throws BagReaderException
+     * @throws BagReaderException If there was an error seeking to the record.
      */
     static public Record recordAt(SeekableByteChannel input, long index) throws BagReaderException {
         try {
@@ -941,7 +938,7 @@ public class BagFile {
      * Please don't do that.
      *
      * @return An MD5 hash that can be used to uniquely identify this bag file.
-     * @throws BagReaderException
+     * @throws BagReaderException If there wasn an error reading the bag file.
      */
     public String getUniqueIdentifier() throws BagReaderException {
         MessageDigest digest = DigestUtils.getMd5Digest();
@@ -998,7 +995,7 @@ public class BagFile {
 
         byte[] md5sum = digest.digest();
         for (byte b : md5sum) {
-            builder.append(Integer.toHexString((b & 0xFF) | 0x100).substring(1, 3));
+            builder.append(Integer.toHexString((b & 0xFF) | 0x100), 1, 3);
         }
 
         return builder.toString();
@@ -1013,14 +1010,14 @@ public class BagFile {
      * This will only read a bag file once.  Successive calls to this method
      * will have no effect.
      *
-     * @throws BagReaderException
+     * @throws BagReaderException If there was an error reading the bag's headers.
      */
     public void read() throws BagReaderException {
         if (myBagHeader != null) {
             return;
         }
 
-        try (FileChannel input = getChannel()) {
+        try (SeekableByteChannel input = getChannel()) {
             verifyBagFile(input);
 
             while (hasNext(input)) {
@@ -1159,7 +1156,7 @@ public class BagFile {
      * and the number of different message types and topics used.  It's fairly
      * similar to the output of "rosbag info ..."
      *
-     * @throws BagReaderException
+     * @throws BagReaderException If there was an error reading the bag file.
      */
     public void printInfo() throws BagReaderException {
         myLogger.info("Version:     " + this.getVersion());
