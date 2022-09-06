@@ -33,7 +33,6 @@ package com.github.swrirobotics.bags.reader;
 import com.github.swrirobotics.bags.reader.exceptions.BagReaderException;
 import com.github.swrirobotics.bags.reader.exceptions.UninitializedFieldException;
 import com.github.swrirobotics.bags.reader.messages.serialization.*;
-import com.github.swrirobotics.bags.reader.records.Connection;
 import org.junit.Test;
 
 import java.io.File;
@@ -46,7 +45,7 @@ public class TestBagFile {
     @Test
     public void testBool() throws BagReaderException {
         File file = new File("src/test/resources/Bool.bag");
-        BagFile bag = new BagFile(file.getPath());
+        BagFile bag = new BagFileImpl(file.getPath());
         final int[] count = {0};
         bag.read();
         bag.forMessagesOnTopic("/false_value", (message, connection) -> {
@@ -77,7 +76,7 @@ public class TestBagFile {
     @Test
     public void testGetMessageOnTopicAtIndex() throws BagReaderException {
         File file = new File("src/test/resources/Int8.bag");
-        BagFile bag = new BagFile(file.getPath());
+        BagFile bag = new BagFileImpl(file.getPath());
         bag.read();
         MessageType message = bag.getMessageOnTopicAtIndex("/data", 0);
         Int8Type data = message.getField("data");
@@ -96,7 +95,7 @@ public class TestBagFile {
     @Test
     public void testInt8() throws BagReaderException {
         File file = new File("src/test/resources/Int8.bag");
-        BagFile bag = new BagFile(file.getPath());
+        BagFile bag = new BagFileImpl(file.getPath());
         final int[] count = {0};
         bag.read();
         bag.forMessagesOnTopic("/data", (message, connection) -> {
@@ -116,7 +115,7 @@ public class TestBagFile {
     @Test
     public void testInt8MultiArray() throws BagReaderException {
         File file = new File("src/test/resources/Int8MultiArray.bag");
-        BagFile bag = new BagFile(file.getPath());
+        BagFile bag = new BagFileImpl(file.getPath());
         final int[] count = {0};
         bag.read();
         bag.forMessagesOnTopic("/data", (message, connection) -> {
@@ -134,7 +133,7 @@ public class TestBagFile {
     @Test
     public void testUInt8() throws BagReaderException {
         File file = new File("src/test/resources/UInt8.bag");
-        BagFile bag = new BagFile(file.getPath());
+        BagFile bag = new BagFileImpl(file.getPath());
         final int[] count = {0};
         bag.read();
         bag.forMessagesOnTopic("/data", (message, connection) -> {
@@ -154,7 +153,7 @@ public class TestBagFile {
     @Test
     public void testUInt8MultiArray() throws BagReaderException {
         File file = new File("src/test/resources/UInt8MultiArray.bag");
-        BagFile bag = new BagFile(file.getPath());
+        BagFile bag = new BagFileImpl(file.getPath());
         final int[] count = {0};
         bag.read();
         bag.forMessagesOnTopic("/data", (message, connection) -> {
@@ -173,7 +172,7 @@ public class TestBagFile {
     @Test
     public void testInt16() throws BagReaderException {
         File file = new File("src/test/resources/Int16.bag");
-        BagFile bag = new BagFile(file.getPath());
+        BagFile bag = new BagFileImpl(file.getPath());
         final int[] count = {0};
         bag.read();
         bag.forMessagesOnTopic("/data", (message, connection) -> {
@@ -193,7 +192,7 @@ public class TestBagFile {
     @Test
     public void testInt16MultiArray() throws BagReaderException {
         File file = new File("src/test/resources/Int16MultiArray.bag");
-        BagFile bag = new BagFile(file.getPath());
+        BagFile bag = new BagFileImpl(file.getPath());
         final int[] count = {0};
         bag.read();
         bag.forMessagesOnTopic("/data", (message, connection) -> {
@@ -211,7 +210,7 @@ public class TestBagFile {
     @Test
     public void testUInt16() throws BagReaderException {
         File file = new File("src/test/resources/UInt16.bag");
-        BagFile bag = new BagFile(file.getPath());
+        BagFile bag = new BagFileImpl(file.getPath());
         final int[] count = {0};
         bag.read();
         bag.forMessagesOnTopic("/data", (message, connection) -> {
@@ -231,7 +230,7 @@ public class TestBagFile {
     @Test
     public void testUInt16MultiArray() throws BagReaderException {
         File file = new File("src/test/resources/UInt16MultiArray.bag");
-        BagFile bag = new BagFile(file.getPath());
+        BagFile bag = new BagFileImpl(file.getPath());
         final int[] count = {0};
         bag.read();
         bag.forMessagesOnTopic("/data", (message, connection) -> {
@@ -249,7 +248,7 @@ public class TestBagFile {
     @Test
     public void testInt32() throws BagReaderException {
         File file = new File("src/test/resources/Int32.bag");
-        BagFile bag = new BagFile(file.getPath());
+        BagFile bag = new BagFileImpl(file.getPath());
         final int[] count = {0};
         bag.read();
         bag.forMessagesOnTopic("/data", (message, connection) -> {
@@ -269,7 +268,7 @@ public class TestBagFile {
     @Test
     public void testInt32MultiArray() throws BagReaderException {
         File file = new File("src/test/resources/Int32MultiArray.bag");
-        BagFile bag = new BagFile(file.getPath());
+        BagFile bag = new BagFileImpl(file.getPath());
         final int[] count = {0};
         bag.read();
         bag.forMessagesOnTopic("/data", (message, connection) -> {
@@ -287,7 +286,7 @@ public class TestBagFile {
     @Test
     public void testUInt32() throws BagReaderException {
         File file = new File("src/test/resources/UInt32.bag");
-        BagFile bag = new BagFile(file.getPath());
+        BagFile bag = new BagFileImpl(file.getPath());
         final int[] count = {0};
         bag.read();
         bag.forMessagesOnTopic("/data", (message, connection) -> {
@@ -307,7 +306,7 @@ public class TestBagFile {
     @Test
     public void testUInt32MultiArray() throws BagReaderException {
         File file = new File("src/test/resources/UInt32MultiArray.bag");
-        BagFile bag = new BagFile(file.getPath());
+        BagFile bag = new BagFileImpl(file.getPath());
         final int[] count = {0};
         bag.read();
         bag.forMessagesOnTopic("/data", (message, connection) -> {
@@ -325,7 +324,7 @@ public class TestBagFile {
     @Test
     public void testInt64() throws BagReaderException {
         File file = new File("src/test/resources/Int64.bag");
-        BagFile bag = new BagFile(file.getPath());
+        BagFile bag = new BagFileImpl(file.getPath());
         final int[] count = {0};
         bag.read();
         bag.forMessagesOnTopic("/data", (message, connection) -> {
@@ -345,7 +344,7 @@ public class TestBagFile {
     @Test
     public void testInt64MultiArray() throws BagReaderException {
         File file = new File("src/test/resources/Int64MultiArray.bag");
-        BagFile bag = new BagFile(file.getPath());
+        BagFile bag = new BagFileImpl(file.getPath());
         final int[] count = {0};
         bag.read();
         bag.forMessagesOnTopic("/data", (message, connection) -> {
@@ -363,7 +362,7 @@ public class TestBagFile {
     @Test
     public void testUInt64() throws BagReaderException {
         File file = new File("src/test/resources/UInt64.bag");
-        BagFile bag = new BagFile(file.getPath());
+        BagFile bag = new BagFileImpl(file.getPath());
         final int[] count = {0};
         bag.read();
         bag.forMessagesOnTopic("/data", (message, connection) -> {
@@ -383,7 +382,7 @@ public class TestBagFile {
     @Test
     public void testUInt64MultiArray() throws BagReaderException {
         File file = new File("src/test/resources/UInt64MultiArray.bag");
-        BagFile bag = new BagFile(file.getPath());
+        BagFile bag = new BagFileImpl(file.getPath());
         final int[] count = {0};
         bag.read();
         bag.forMessagesOnTopic("/data", (message, connection) -> {
@@ -400,7 +399,7 @@ public class TestBagFile {
     @Test
     public void testFloat32() throws BagReaderException {
         File file = new File("src/test/resources/Float32.bag");
-        BagFile bag = new BagFile(file.getPath());
+        BagFile bag = new BagFileImpl(file.getPath());
         final int[] count = {0};
         bag.read();
         bag.forMessagesOnTopic("/data", (message, connection) -> {
@@ -421,7 +420,7 @@ public class TestBagFile {
     @Test
     public void testFloat32MultiArray() throws BagReaderException {
         File file = new File("src/test/resources/Float32MultiArray.bag");
-        BagFile bag = new BagFile(file.getPath());
+        BagFile bag = new BagFileImpl(file.getPath());
         final int[] count = {0};
         bag.read();
         bag.forMessagesOnTopic("/data", (message, connection) -> {
@@ -438,7 +437,7 @@ public class TestBagFile {
     @Test
     public void testFloat64() throws BagReaderException {
         File file = new File("src/test/resources/Float64.bag");
-        BagFile bag = new BagFile(file.getPath());
+        BagFile bag = new BagFileImpl(file.getPath());
         final int[] count = {0};
         bag.read();
         bag.forMessagesOnTopic("/data", (message, connection) -> {
@@ -459,7 +458,7 @@ public class TestBagFile {
     @Test
     public void testFloat64MultiArray() throws BagReaderException {
         File file = new File("src/test/resources/Float64MultiArray.bag");
-        BagFile bag = new BagFile(file.getPath());
+        BagFile bag = new BagFileImpl(file.getPath());
         final int[] count = {0};
         bag.read();
         bag.forMessagesOnTopic("/data", (message, connection) -> {
@@ -475,7 +474,7 @@ public class TestBagFile {
     @Test
     public void testPointCloud() throws BagReaderException {
         File file = new File("src/test/resources/PointCloud2.bag");
-        BagFile bag = new BagFile(file.getPath());
+        BagFile bag = new BagFileImpl(file.getPath());
         final int[] count = {0};
         bag.read();
         bag.forMessagesOnTopic("/pointcloud2", (message, connection) -> {

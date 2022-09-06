@@ -58,7 +58,7 @@ public class BagReader {
      * @throws BagReaderException If there was an error reading or parsing the file.
      */
     public static BagFile readFile(File file) throws BagReaderException {
-        BagFile bag = new BagFile(file.getAbsolutePath());
+        BagFile bag = new BagFileImpl(file.getAbsolutePath());
         bag.read();
         return bag;
     }
@@ -70,7 +70,7 @@ public class BagReader {
      * @throws BagReaderException If there was an error reading or parsing the file.
      */
     public static BagFile readFile(String filename) throws BagReaderException {
-        BagFile bag = new BagFile(filename);
+        BagFile bag = new BagFileImpl(filename);
         bag.read();
         return bag;
     }
